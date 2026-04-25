@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination System - Home Page</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</head>
+
+<body>
+  <main class="min-vh-100 d-flex flex-column justify-content-center align-items-center">
+    <div class="heading animate__animated animate__zoomInDown">
+      <h1 class="mb-0">Examination System</h1>
+    </div>
+    <div class="container">
+      <div class="row">
+        <form
+          class="start-quiz col-lg-8 offset-lg-2 d-flex flex-column gap-3 animate__animated animate__fadeInBottomLeft"
+          id="quizOptions">
+
+          <div class="form-floating">
+            <select class="form-select" id="categoryMenu">
+              <option selected value="">Any Category</option>\
+
+              <option value="9">General Knowledge</option>
+              <option value="27">Animals</option>
+              <option value="19">Science: Mathematics</option>
+              <option value="18">Science: Computers</option>
+              <option value="22">Geography</option>
+            </select>
+            <label for="categoryMenu">Category</label>
+          </div>
+
+          <div class="form-floating">
+            <select class="form-select" id="difficultyOptions">
+              <option selected value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+            <label for="difficultyOptions">Difficulty Level</label>
+          </div>
+
+          <div class="form-floating">
+            <input type="number" value="5" class="form-control" id="questionsNumber"
+              placeholder="Number of Questions" />
+            <label for="QuestionsNumber">Number of Questions</label>
+          </div>
+
+          <button type="button" class="btn btn-start btn-primary" id="startQuiz">
+            Start
+          </button>
+
+        </form>
+
+      </div>
+    </div>
+
+    <script type="module" src="js/start.js"></script>
+
+</body>
+</html>
