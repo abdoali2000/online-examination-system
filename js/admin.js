@@ -9,6 +9,17 @@ if (!localStorage.getItem("examDuration")) {
   localStorage.setItem("examDuration", String(DEFAULT_EXAM_DURATION_SECONDS));
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (typeof str !== "string") return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 //  ADMIN LOGIN
 // ══════════════════════════════════════════════════════════════════════════
