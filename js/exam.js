@@ -1,6 +1,9 @@
 import { Exam }     from "./examClass.js";
 import { Question } from "./examClass.js";
-import { DEFAULT_EXAM_DURATION_SECONDS } from "./config.js";
+import { DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
+import {
+  collection, addDoc, query, where, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ── Auth guard ──────────────────────────────────────────────────────────
 if (!localStorage.getItem("email")) {
@@ -8,21 +11,31 @@ if (!localStorage.getItem("email")) {
 }
 
 // ── Read exam type from session ─────────────────────────────────────────
-const examType = sessionStorage.getItem("examType") || "medical";
+const examType  = sessionStorage.getItem("examType") || "medical";
+const userEmail = localStorage.getItem("email");
 
-// ── Check if already submitted ──────────────────────────────────────────
-const userEmail   = localStorage.getItem("email");
-const results     = JSON.parse(localStorage.getItem("examResults") || "[]");
-const alreadyDone = results.some(r => r.studentEmail === userEmail && r.examType === examType);
-
-if (alreadyDone) {
-  window.location.replace("choose.html");
+// ── Check if already submitted (via Firestore) ──────────────────────────
+async function checkAlreadyDone() {
+  try {
+    const q = query(
+      collection(db, "examResults"),
+      where("studentEmail", "==", userEmail),
+      where("examType",     "==", examType)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      window.location.replace("choose.html");
+    }
+  } catch (err) {
+    console.error("[exam] checkAlreadyDone error:", err);
+  }
 }
+await checkAlreadyDone();
 
 let questionsArray = [];
 let myExam;
-let examSubmitted   = false;
-let violationCount  = 0;
+let examSubmitted  = false;
+let violationCount = 0;
 
 // ══════════════════════════════════════════════════════════════════════════
 //  FULLSCREEN HELPERS
@@ -70,7 +83,6 @@ function onFullscreenChange() {
 
 // ── Return to fullscreen button ─────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
-  // Return button inside warning overlay
   const returnBtn = document.getElementById("returnFullscreenBtn");
   if (returnBtn) {
     returnBtn.addEventListener("click", async () => {
@@ -79,7 +91,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Gate: Enter Fullscreen & Start
   const enterBtn = document.getElementById("enterFullscreenBtn");
   if (enterBtn) {
     enterBtn.addEventListener("click", async () => {
@@ -91,18 +102,16 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════
-//  EXAM INIT (called after user enters fullscreen)
+//  EXAM INIT
 // ══════════════════════════════════════════════════════════════════════════
 function initExam() {
   const duration = parseInt(localStorage.getItem("examDuration") || String(DEFAULT_EXAM_DURATION_SECONDS), 10);
 
-  // Update page title with exam type
   const titleEl = document.querySelector(".exam-title");
   if (titleEl) {
     titleEl.textContent = examType === "medical" ? "🏥 Medical Exam" : "💼 Soft Skills Exam";
   }
 
-  // Build exam object and load questions
   myExam = new Exam({ examType });
   questionsArray = myExam.getQuestions();
 
@@ -118,15 +127,12 @@ function initExam() {
     return;
   }
 
-  // Display first question
   new Question(0, questionsArray, myExam).displayQuestions();
 
-  // Start timer
   const labelEl = document.getElementById("timerLabel");
   const fillEl  = document.getElementById("timerFill");
   myExam.startTimer(duration, labelEl, fillEl, showTimeoutPage);
 
-  // Submit button
   document.getElementById("submitBtn").addEventListener("click", () => {
     myExam.stopTimer();
     examSubmitted = true;
@@ -135,8 +141,8 @@ function initExam() {
   });
 }
 
-// ── Save exam result to localStorage for admin ─────────────────────────────────────────
-function saveExamResult(isTimeout) {
+// ── Save exam result to Firestore ─────────────────────────────────────────
+async function saveExamResult(isTimeout) {
   try {
     if (!myExam || !questionsArray || questionsArray.length === 0) {
       console.error("[saveExamResult] Cannot save: exam not initialized.");
@@ -146,6 +152,7 @@ function saveExamResult(isTimeout) {
     const firstName    = localStorage.getItem("f_name") || "Student";
     const lastName     = localStorage.getItem("l_name") || "";
     const studentEmail = localStorage.getItem("email")  || "";
+    const uid          = localStorage.getItem("uid")    || "";
 
     const answers = questionsArray.map(q => {
       const correctAnswer = q.type === "tf"
@@ -167,28 +174,29 @@ function saveExamResult(isTimeout) {
     const calculatedScore = answers.filter(a => a.isCorrect).length;
 
     const result = {
-      id:             Date.now(),
-      timestamp:      new Date().toISOString(),
-      examType:       examType,
-      studentName:    `${firstName} ${lastName}`.trim(),
-      studentEmail:   studentEmail,
-      score:          calculatedScore,
-      total:          questionsArray.length,
-      isTimeout:      isTimeout,
-      violations:     violationCount,
-      answers:        answers
+      id:           Date.now(),
+      timestamp:    new Date().toISOString(),
+      examType:     examType,
+      studentName:  `${firstName} ${lastName}`.trim(),
+      studentEmail: studentEmail,
+      uid:          uid,
+      score:        calculatedScore,
+      total:        questionsArray.length,
+      isTimeout:    isTimeout,
+      violations:   violationCount,
+      answers:      answers
     };
 
-    const existing = JSON.parse(localStorage.getItem("examResults") || "[]");
-    existing.push(result);
-    localStorage.setItem("examResults", JSON.stringify(existing));
-    console.log("[saveExamResult] Saved result for", studentEmail, "score:", result.score, "/", result.total);
+    // Save to Firestore examResults collection
+    await addDoc(collection(db, "examResults"), result);
+    console.log("[saveExamResult] Saved to Firestore for", studentEmail, "score:", calculatedScore, "/", questionsArray.length);
+
   } catch (err) {
-    console.error("[saveExamResult] Error saving result:", err);
+    console.error("[saveExamResult] Firestore error:", err);
   }
 }
 
-// ── Result Page (submitted on time) ──────────────────────────────────────
+// ── Result Page ──────────────────────────────────────────────────────────
 function showGradesPage() {
   saveExamResult(false);
 

@@ -1,5 +1,8 @@
-import { ADMIN_EMAIL, ADMIN_PASSWORD, DEFAULT_EXAM_DURATION_SECONDS } from "./config.js";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
 import { defaultQuestions } from "./questions.js";
+import {
+  collection, getDocs, deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ── Seed data on first visit ─────────────────────────────────────────────
 if (!localStorage.getItem("adminQuestions")) {
@@ -96,9 +99,9 @@ function initTabs() {
       btn.classList.add("active");
       document.getElementById(targetId).classList.add("active");
 
-      // Always re-render results when switching to the Results tab
+      // Always re-fetch & re-render results when switching to the Results tab
       if (targetId === "resultsTab") {
-        renderResults();
+        loadResultsFromFirestore().then(() => renderResults());
       }
     });
   });
@@ -481,32 +484,57 @@ function showToast(msg, type = "success") {
 // ══════════════════════════════════════════════════════════════════════════
 //  RESULTS TAB
 // ══════════════════════════════════════════════════════════════════════════
+// Firestore-backed results cache
+let _resultsCache = [];
+let _resultsCacheLoaded = false;
+
+async function loadResultsFromFirestore() {
+  try {
+    const snap = await getDocs(collection(db, "examResults"));
+    _resultsCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    _resultsCacheLoaded = true;
+  } catch (err) {
+    console.error("[admin] Firestore loadResults error:", err);
+    _resultsCache = [];
+  }
+}
+
 function getResults() {
-  return JSON.parse(localStorage.getItem("examResults") || "[]");
+  return _resultsCache;
 }
 
 function initResults() {
-  renderResults();
+  // Load from Firestore on first open
+  loadResultsFromFirestore().then(() => renderResults());
 
   // Filters
   document.getElementById("filterResultExam").addEventListener("change", renderResults);
   document.getElementById("filterResultSearch").addEventListener("input", renderResults);
 
-  // Refresh button
-  document.getElementById("refreshResultsBtn").addEventListener("click", () => {
+  // Refresh button — re-fetch from Firestore
+  document.getElementById("refreshResultsBtn").addEventListener("click", async () => {
+    await loadResultsFromFirestore();
     renderResults();
     showToast("Results refreshed ✅");
   });
 
-  // Clear all
-  document.getElementById("clearResultsBtn").addEventListener("click", () => {
+  // Clear all — delete every doc from Firestore
+  document.getElementById("clearResultsBtn").addEventListener("click", async () => {
     if (!confirm("This will permanently delete ALL student results. Are you sure?")) return;
-    localStorage.removeItem("examResults");
-    renderResults();
-    showToast("All results cleared 🗑️");
+    try {
+      const snap = await getDocs(collection(db, "examResults"));
+      const deletes = snap.docs.map(d => deleteDoc(doc(db, "examResults", d.id)));
+      await Promise.all(deletes);
+      _resultsCache = [];
+      renderResults();
+      showToast("All results cleared 🗑️");
+    } catch (err) {
+      console.error("[admin] clearResults error:", err);
+      showToast("Failed to clear results ❌", "error");
+    }
   });
 
-  // Detail modal close (handled by inline onclick in HTML for resultDetailClose)
+  // Detail modal close
   document.getElementById("resultDetailOverlay").addEventListener("click", e => {
     if (e.target === document.getElementById("resultDetailOverlay")) {
       document.getElementById("resultDetailOverlay").style.display = "none";

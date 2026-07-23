@@ -1,120 +1,139 @@
-if(localStorage.getItem("email")){
+import { auth, db } from "./config.js";
+import {
+  signInWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ── If already logged in, skip to choose ─────────────────────────────────
+if (localStorage.getItem("email")) {
     window.location.replace("choose.html");
 }
-// name
-const email = document.querySelector("#email");
-const emailError = document.querySelector("#error_email");
 
-//passwod
-const password = document.querySelector("#password");
+// ── DOM refs ──────────────────────────────────────────────────────────────
+const email         = document.querySelector("#email");
+const emailError    = document.querySelector("#error_email");
+const password      = document.querySelector("#password");
 const passwordError = document.querySelector("#error_pass");
+const form          = document.querySelector("#loginForm");
 
-// form
-const form = document.querySelector("#loginForm");
-
-// btn
-const btn = document.querySelector("#submt");
-
-// error function
+// ── UI helpers ────────────────────────────────────────────────────────────
 function error(input, div, msg) {
-    input.style.border = "2px solid red";
-    input.style.color = "";
-    input.style.animation = "shake 0.5s ease-in-out ";
-    div.innerHTML = msg;
+    input.style.border    = "2px solid red";
+    input.style.color     = "";
+    input.style.animation = "shake 0.5s ease-in-out";
+    div.innerHTML   = msg;
     div.style.color = "red";
 }
 
-//valid function
 function valid(input, div) {
-    input.style.border = "2px solid green";
-    input.style.color = "green";
+    input.style.border    = "2px solid green";
+    input.style.color     = "green";
     input.style.animation = "";
-    div.innerHTML = "";
+    div.innerHTML   = "";
     div.style.color = "green";
 }
 
-//validation email
-let regexEmail = /^[a-zA-Z][a-zA-Z0-9]{3,19}@[a-zA-Z]+\.[a-zA-Z]{2,}$/;
+// ── Inline validation ────────────────────────────────────────────────────
+const regexEmail = /^[a-zA-Z][a-zA-Z0-9]{3,19}@[a-zA-Z]+\.[a-zA-Z]{2,}$/;
+const regexPass  = /^.{6,}$/;
+
 function validateEmail() {
-    const emailVal = document.querySelector("#email").value;
-    if (regexEmail.test(emailVal)) {
-        valid(email, emailError)
-    } else {
-        error(email, emailError, "email not valid")
-    }
+    const v = email.value;
+    regexEmail.test(v) ? valid(email, emailError) : error(email, emailError, "Email not valid");
 }
 
-// validation pass
-let regexPass = /^.{6,}$/;
 function validatePassword() {
-    const passwordVal = document.querySelector("#password").value;
-     if (regexPass.test(passwordVal)) {
-        valid(password, passwordError)
-    } else {
-        error(password, passwordError, "Password must be at least 6 characters");
-    }
+    const v = password.value;
+    regexPass.test(v) ? valid(password, passwordError) : error(password, passwordError, "Password must be at least 6 characters");
 }
 
-form.addEventListener("submit", (e) => {
-    e.preventDefault()
+// Expose inline handlers
+window.validateEmail    = validateEmail;
+window.validatePassword = validatePassword;
 
-    // condition
+// ── Form submit ───────────────────────────────────────────────────────────
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
     let isValid = true;
 
-    // Find user in database
-    const users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-    const foundUser = users.find(u => u.email === email.value);
+    if (!email.value.trim()) {
+        error(email, emailError, "Please enter the email"); isValid = false;
+    } else if (!regexEmail.test(email.value)) {
+        error(email, emailError, "Please enter a valid email"); isValid = false;
+    } else { valid(email, emailError); }
 
-    //email
-    if(email.value.trim() === ""){
-        error(email, emailError, "Please enter the email");
-        isValid = false;
-    }
-    else if(!regexEmail.test(email.value)){
-        error(email, emailError, "Please enter a valid email");
-        isValid = false;
-    }
-    else if(!foundUser){
-        error(email, emailError, "Email does not exist");
-        isValid = false;
-    }
-    else{
-        valid(email, emailError);
-    }
+    if (!password.value.trim()) {
+        error(password, passwordError, "Please enter the password"); isValid = false;
+    } else if (!regexPass.test(password.value)) {
+        error(password, passwordError, "Password must be at least 6 characters"); isValid = false;
+    } else { valid(password, passwordError); }
 
-    //password
-    if(password.value.trim() === ""){
-        error(password, passwordError, "Please enter the password");
-        isValid = false;
-    }
-    else if(!regexPass.test(password.value)){
-        error(password, passwordError, "Password must be at least 6 characters");
-        isValid = false;
-    }  
-    else if (foundUser && password.value !== foundUser.password){
-        error(password, passwordError, "Password is not correct");
-        isValid = false;
-    }
-    else{
-         valid(password, passwordError);
-    }
+    if (!isValid) return;
 
-    // true
-    if(isValid){
-        // Restore active session
-        localStorage.setItem("email", foundUser.email);
-        localStorage.setItem("password", foundUser.password);
-        localStorage.setItem("f_name", foundUser.f_name);
-        localStorage.setItem("l_name", foundUser.l_name);
-        localStorage.setItem("image", foundUser.image || "");
+    // ── Firebase Login ───────────────────────────────────────────────────
+    const submitBtn = form.querySelector("button[type='submit']");
+    submitBtn.disabled    = true;
+    submitBtn.textContent = "Logging in...";
+
+    try {
+        // 1. Sign in via Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(
+            auth,
+            email.value.trim(),
+            password.value
+        );
+        const uid = userCredential.user.uid;
+
+        // 2. Fetch profile from Firestore users/{uid}
+        const userDocRef  = doc(db, "users", uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        let fName = "", lName = "", image = "";
+        if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            fName = data.f_name || "";
+            lName = data.l_name || "";
+            image = data.image  || "";
+        }
+
+        // 3. Save session to localStorage (fast access)
+        localStorage.setItem("uid",    uid);
+        localStorage.setItem("email",  email.value.trim());
+        localStorage.setItem("f_name", fName);
+        localStorage.setItem("l_name", lName);
+        localStorage.setItem("image",  image);
+
+        submitBtn.textContent = "✅ Success!";
         setTimeout(() => {
             window.location.replace("choose.html");
-        }, 1500);
-    }
-    
-})
+        }, 1000);
 
-// Toggle password visibility
+    } catch (err) {
+        submitBtn.disabled    = false;
+        submitBtn.textContent = "Login";
+
+        // Map Firebase error codes to friendly messages
+        if (
+            err.code === "auth/user-not-found" ||
+            err.code === "auth/invalid-credential" ||
+            err.code === "auth/invalid-email"
+        ) {
+            error(email, emailError, "Email does not exist or is invalid.");
+        } else if (err.code === "auth/wrong-password") {
+            error(password, passwordError, "Password is incorrect.");
+        } else if (err.code === "auth/too-many-requests") {
+            error(email, emailError, "Too many failed attempts. Please try again later.");
+        } else {
+            error(email, emailError, `Login failed: ${err.message}`);
+        }
+        console.error("[login] Firebase error:", err);
+    }
+});
+
+// ── Toggle password visibility ─────────────────────────────────────────
 const showPasswordToggle = document.querySelector("#showPasswordToggle");
 if (showPasswordToggle) {
     showPasswordToggle.addEventListener("change", () => {

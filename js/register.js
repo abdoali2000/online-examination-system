@@ -1,225 +1,222 @@
-// Auth guard removed so users can re-register if they made a mistake.
-//name
-const firstName = document.querySelector("#Fname");
-const lastName = document.querySelector("#Lname");
-const errorFirstName = document.querySelector("#error_fn");
-const errorLastName = document.querySelector("#error_ln");
+import { auth, db } from "./config.js";
+import {
+  createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  doc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// email
-const email = document.querySelector("#email");
+// ── DOM refs ─────────────────────────────────────────────────────────────
+const firstName      = document.querySelector("#Fname");
+const lastName       = document.querySelector("#Lname");
+const errorFirstName = document.querySelector("#error_fn");
+const errorLastName  = document.querySelector("#error_ln");
+
+const email      = document.querySelector("#email");
 const emailError = document.querySelector("#error_email");
 
-// file
-const file = document.querySelector("#file");
+const file         = document.querySelector("#file");
 const imagePreview = document.querySelector("#imagePreview");
-const fileError = document.querySelector("#error_file");
+const fileError    = document.querySelector("#error_file");
 
-//password
-const password = document.querySelector("#password");
+const password      = document.querySelector("#password");
 const passwordError = document.querySelector("#error_pass");
 
-// re password
-const rePassword = document.querySelector("#re_password");
+const rePassword    = document.querySelector("#re_password");
 const erPasswordError = document.querySelector("#error_repass");
 
-// form
 const form = document.querySelector("#registrationForm");
+const btn  = document.querySelector("#sbmit");
 
-//register btn
-const btn = document.querySelector("#sbmit");
-
-// error function
+// ── UI helpers ────────────────────────────────────────────────────────────
 function error(input, div, msg) {
-    input.style.border = "2px solid red";
-    input.style.color = "";
-    input.style.animation = "shake 0.5s ease-in-out ";
-    div.innerHTML = msg;
+    input.style.border    = "2px solid red";
+    input.style.color     = "";
+    input.style.animation = "shake 0.5s ease-in-out";
+    div.innerHTML  = msg;
     div.style.color = "red";
 }
 
-//valid function
 function valid(input, div) {
-    input.style.border = "2px solid green";
-    input.style.color = "green";
+    input.style.border    = "2px solid green";
+    input.style.color     = "green";
     input.style.animation = "";
-    div.innerHTML = "";
+    div.innerHTML  = "";
     div.style.color = "green";
 }
 
-//validation name
-let regexFname = /^[a-zA-Z]+$/;
+// ── Inline validation ────────────────────────────────────────────────────
+const regexFname    = /^[a-zA-Z]+$/;
+const regexLastName = /^[a-zA-Z]+$/;
+const regexEmail    = /^[a-zA-Z][a-zA-Z0-9]{3,19}@[a-zA-Z]+\.[a-zA-Z]{2,}$/;
+const regexPass     = /^.{6,}$/;
+
 function validFirstName() {
-    const firstNameVal = firstName.value;
-    if (regexFname.test(firstNameVal)) {
-        valid(firstName, errorFirstName)
-    } else {
-        error(firstName, errorFirstName, "First name should contain letters only");
-    }
+    const v = firstName.value;
+    regexFname.test(v)
+        ? valid(firstName, errorFirstName)
+        : error(firstName, errorFirstName, "First name should contain letters only");
 }
 
-// validation last name
-let regexLastName = /^[a-zA-Z]+$/;
 function validationLastName() {
-    const lastNameVal = document.querySelector("#Lname").value;
-    if (regexLastName.test(lastNameVal)) {
-        valid(lastName, errorLastName)
-    } else {
-        error(lastName, errorLastName, "Last name should contain letters only");
-    }
+    const v = lastName.value;
+    regexLastName.test(v)
+        ? valid(lastName, errorLastName)
+        : error(lastName, errorLastName, "Last name should contain letters only");
 }
 
-//validation email
-let regexEmail = /^[a-zA-Z][a-zA-Z0-9]{3,19}@[a-zA-Z]+\.[a-zA-Z]{2,}$/;
 function validationEmail() {
-    const emailVal = document.querySelector("#email").value;
-    if (regexEmail.test(emailVal)) {
-        valid(email, emailError)
-    } else {
-        error(email, emailError, "email not valid")
-    }
+    const v = email.value;
+    regexEmail.test(v)
+        ? valid(email, emailError)
+        : error(email, emailError, "Email not valid");
 }
 
-//validate files
-function validateFiles(){
+function validateFiles() {
     valid(file, fileError);
-    const files = file.files[0];
-    if(files){
+    const f = file.files[0];
+    if (f) {
         const reader = new FileReader();
-        reader.onload = function(e){
+        reader.onload = e => {
             imagePreview.src = e.target.result;
             imagePreview.style.display = "block";
-        }
-        reader.readAsDataURL(files)
+        };
+        reader.readAsDataURL(f);
     } else {
         imagePreview.src = "";
         imagePreview.style.display = "none";
     }
 }
-// validation pass
-let regexPass = /^.{6,}$/;
+
 function validationPassword() {
-    const passwordVal = document.querySelector("#password").value;
-     if (regexPass.test(passwordVal)) {
-        valid(password, passwordError)
-    } else {
-        error(password, passwordError, "Password must be at least 6 characters");
-    }
+    const v = password.value;
+    regexPass.test(v)
+        ? valid(password, passwordError)
+        : error(password, passwordError, "Password must be at least 6 characters");
 }
 
-// validation re password
 function validationRePassword() {
-    const passwordVal = document.querySelector("#password").value;
-    const rePasswordVal = document.querySelector("#re_password").value;
-    if (rePasswordVal === passwordVal) {
-        valid(rePassword, erPasswordError);
-    }
-    else {
-        error(rePassword, erPasswordError, "Passwords do not match");
-    }
-};
+    rePassword.value === password.value
+        ? valid(rePassword, erPasswordError)
+        : error(rePassword, erPasswordError, "Passwords do not match");
+}
 
-// form validation
-form.addEventListener("submit", (e) => {
+// Expose inline handlers used in HTML attributes
+window.validFirstName      = validFirstName;
+window.validationLastName  = validationLastName;
+window.validationEmail     = validationEmail;
+window.validateFiles       = validateFiles;
+window.validationPassword  = validationPassword;
+window.validationRePassword = validationRePassword;
+
+// ── Form submit ───────────────────────────────────────────────────────────
+form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    let isValid = true; 
+    let isValid = true;
 
     // First Name
-    if (firstName.value.trim() === "") {
-        error(firstName, errorFirstName, "Please enter the First name");
-        isValid = false;
+    if (!firstName.value.trim()) {
+        error(firstName, errorFirstName, "Please enter the First name"); isValid = false;
     } else if (!regexFname.test(firstName.value)) {
-        error(firstName, errorFirstName, "First name should contain letters only");
-        isValid = false;
-    } else {
-        valid(firstName, errorFirstName);
-    }
+        error(firstName, errorFirstName, "First name should contain letters only"); isValid = false;
+    } else { valid(firstName, errorFirstName); }
 
     // Last Name
-    if (lastName.value.trim() === "") {
-        error(lastName, errorLastName, "Please enter the Last name");
-        isValid = false;
+    if (!lastName.value.trim()) {
+        error(lastName, errorLastName, "Please enter the Last name"); isValid = false;
     } else if (!regexLastName.test(lastName.value)) {
-        error(lastName, errorLastName, "Last name should contain letters only");
-        isValid = false;
-    } else {
-        valid(lastName, errorLastName);
-    }
+        error(lastName, errorLastName, "Last name should contain letters only"); isValid = false;
+    } else { valid(lastName, errorLastName); }
 
     // Email
-    if (email.value.trim() === "") {
-        error(email, emailError, "Please enter the email");
-        isValid = false;
+    if (!email.value.trim()) {
+        error(email, emailError, "Please enter the email"); isValid = false;
     } else if (!regexEmail.test(email.value)) {
-        error(email, emailError, "Please enter a valid email");
-        isValid = false;
-    } else {
-        valid(email, emailError);
-    }
+        error(email, emailError, "Please enter a valid email"); isValid = false;
+    } else { valid(email, emailError); }
 
-    // File (Optional)
+    // File (optional)
     valid(file, fileError);
 
     // Password
-    if (password.value.trim() === "") {
-        error(password, passwordError, "Please enter the password");
-        isValid = false;
+    if (!password.value.trim()) {
+        error(password, passwordError, "Please enter the password"); isValid = false;
     } else if (!regexPass.test(password.value)) {
-        error(password, passwordError, "Password must be at least 6 characters");
-        isValid = false;
-    } else {
-        valid(password, passwordError);
-    }
+        error(password, passwordError, "Password must be at least 6 characters"); isValid = false;
+    } else { valid(password, passwordError); }
 
     // Re-password
-    if (rePassword.value.trim() === "") {
-        error(rePassword, erPasswordError, "Please re-enter the password");
-        isValid = false;
+    if (!rePassword.value.trim()) {
+        error(rePassword, erPasswordError, "Please re-enter the password"); isValid = false;
     } else if (rePassword.value !== password.value) {
-        error(rePassword, erPasswordError, "Passwords do not match");
-        isValid = false;
-    } else {
-        valid(rePassword, erPasswordError);
-    }
+        error(rePassword, erPasswordError, "Passwords do not match"); isValid = false;
+    } else { valid(rePassword, erPasswordError); }
 
-    //  true
-    if (isValid) {
-        // Save to active session
-        localStorage.setItem("f_name", firstName.value)
-        localStorage.setItem("l_name", lastName.value)
-        localStorage.setItem("email", email.value)
-        localStorage.setItem("password", password.value)
-        localStorage.setItem("image", file.files.length > 0 ? imagePreview.src : "")
-        
-        // Add to registered users database
-        const users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-        const existingIndex = users.findIndex(u => u.email === email.value);
-        const newUser = {
-            f_name: firstName.value,
-            l_name: lastName.value,
-            email: email.value,
-            password: password.value,
-            image: file.files.length > 0 ? imagePreview.src : ""
-        };
-        if(existingIndex >= 0) {
-            users[existingIndex] = newUser; // Update if exists
-        } else {
-            users.push(newUser);
-        }
-        localStorage.setItem("registeredUsers", JSON.stringify(users));
+    if (!isValid) return;
+
+    // ── Firebase Registration ────────────────────────────────────────────
+    const submitBtn = form.querySelector("button[type='submit']");
+    submitBtn.disabled    = true;
+    submitBtn.textContent = "Registering...";
+
+    try {
+        // 1. Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(
+            auth,
+            email.value.trim(),
+            password.value
+        );
+        const uid = userCredential.user.uid;
+
+        // 2. Save profile to Firestore users/{uid}
+        const imageData = file.files.length > 0 ? imagePreview.src : "";
+        await setDoc(doc(db, "users", uid), {
+            f_name: firstName.value.trim(),
+            l_name: lastName.value.trim(),
+            email:  email.value.trim(),
+            image:  imageData,
+            createdAt: new Date().toISOString()
+        });
+
+        // 3. Save session info to localStorage (for fast access this session)
+        localStorage.setItem("uid",     uid);
+        localStorage.setItem("f_name",  firstName.value.trim());
+        localStorage.setItem("l_name",  lastName.value.trim());
+        localStorage.setItem("email",   email.value.trim());
+        localStorage.setItem("image",   imageData);
+
+        submitBtn.textContent = "✅ Registered!";
         setTimeout(() => {
             window.location.replace("choose.html");
-        }, 1500);
+        }, 1000);
+
+    } catch (err) {
+        submitBtn.disabled    = false;
+        submitBtn.textContent = "Register";
+
+        // Map Firebase error codes to friendly messages
+        if (err.code === "auth/email-already-in-use") {
+            error(email, emailError, "This email is already registered. Please login.");
+        } else if (err.code === "auth/invalid-email") {
+            error(email, emailError, "Invalid email format.");
+        } else if (err.code === "auth/weak-password") {
+            error(password, passwordError, "Password is too weak (min 6 characters).");
+        } else {
+            emailError.innerHTML  = "";
+            passwordError.innerHTML = `Registration failed: ${err.message}`;
+            passwordError.style.color = "red";
+        }
+        console.error("[register] Firebase error:", err);
     }
 });
 
-// Toggle password visibility
+// ── Toggle password visibility ─────────────────────────────────────────
 const showPasswordToggle = document.querySelector("#showPasswordToggle");
 if (showPasswordToggle) {
     showPasswordToggle.addEventListener("change", () => {
         const type = showPasswordToggle.checked ? "text" : "password";
-        password.type = type;
+        password.type   = type;
         rePassword.type = type;
     });
 }
-
