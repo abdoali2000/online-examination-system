@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bio-NL Admin Dashboard</title>
+  <meta name="description" content="Admin dashboard for managing exam questions and settings." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════
+       ADMIN LOGIN SCREEN
+  ═══════════════════════════════════════════════════ -->
+  <div class="admin-login-wrap" id="adminLoginWrap">
+    <div class="admin-login-card animate__animated animate__zoomIn">
+      <div class="admin-login-logo">🔐</div>
+      <h2>Admin Dashboard</h2>
+      <p class="admin-login-sub">Bio-NL Exam System — Restricted Access</p>
+
+      <form id="adminLoginForm" novalidate>
+        <div class="admin-field">
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" placeholder="admin@bioexam.com" autocomplete="username" />
+          <span class="admin-field-err" id="adminEmailErr"></span>
+        </div>
+        <div class="admin-field">
+          <label for="adminPass">Password</label>
+          <input type="password" id="adminPass" placeholder="••••••••" autocomplete="current-password" />
+          <span class="admin-field-err" id="adminPassErr"></span>
+        </div>
+        <div class="admin-field-err global" id="adminLoginErr"></div>
+        <button type="submit" class="admin-login-btn" id="adminLoginBtn">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ADMIN DASHBOARD (hidden until login)
+  ═══════════════════════════════════════════════════ -->
+  <div class="admin-dash" id="adminDash" style="display:none">
+
+    <!-- ── Topbar ── -->
+    <header class="admin-topbar">
+      <div class="admin-brand">
+        <span class="admin-brand-icon">🧬</span>
+        <span>Bio-NL Admin</span>
+      </div>
+      <div class="admin-topbar-right">
+        <span class="admin-user-label" id="adminUserLabel">admin@bioexam.com</span>
+        <button class="admin-logout-btn" id="adminLogoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div class="admin-layout">
+
+      <!-- ── Sidebar Navigation ── -->
+      <nav class="admin-sidebar">
+        <button class="admin-nav-btn active" data-tab="questionsTab" id="navQuestions">
+          <span>📋</span> Questions
+        </button>
+        <button class="admin-nav-btn" data-tab="addTab" id="navAdd">
+          <span>➕</span> Add Question
+        </button>
+        <button class="admin-nav-btn" data-tab="settingsTab" id="navSettings">
+          <span>⚙️</span> Settings
+        </button>
+      </nav>
+
+      <!-- ── Main Content ── -->
+      <main class="admin-content">
+
+        <!-- ─────────────────────────────────────────────
+             TAB 1: QUESTIONS LIST
+        ───────────────────────────────────────────── -->
+        <section class="admin-tab active" id="questionsTab">
+          <div class="admin-section-header">
+            <h2>Question Bank</h2>
+            <div class="admin-stats" id="adminStats">
+              <span class="stat-chip" id="statTotal">Total: 0</span>
+              <span class="stat-chip medical">Medical: 0</span>
+              <span class="stat-chip soft">Soft Skills: 0</span>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="admin-filters">
+            <select id="filterExam" class="admin-select">
+              <option value="all">All Exam Types</option>
+              <option value="medical">Medical</option>
+              <option value="softskills">Soft Skills</option>
+            </select>
+            <select id="filterType" class="admin-select">
+              <option value="all">All Question Types</option>
+              <option value="tf">True / False</option>
+              <option value="mcq">MCQ</option>
+            </select>
+            <input type="text" id="filterSearch" class="admin-search" placeholder="🔍 Search questions…" />
+            <button class="admin-reset-btn" id="resetQuestions">↺ Reset to Default</button>
+          </div>
+
+          <!-- Table -->
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="questionsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Type</th>
+                  <th>Exam</th>
+                  <th>Question</th>
+                  <th>Answer</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="questionsBody">
+                <tr><td colspan="6" class="admin-loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="admin-pagination" id="pagination"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             TAB 2: ADD QUESTION
+        ───────────────────────────────────────────── -->
+        <section class="admin-tab" id="addTab">
+          <div class="admin-section-header">
+            <h2 id="addTabTitle">Add New Question</h2>
+          </div>
+
+          <form class="admin-form" id="questionForm" novalidate>
+            <!-- Hidden id for edit mode -->
+            <input type="hidden" id="editId" value="" />
+
+            <div class="admin-form-row two-col">
+              <div class="admin-field">
+                <label for="qExamType">Exam Type</label>
+                <select id="qExamType" class="admin-select" required>
+                  <option value="medical">Medical</option>
+                  <option value="softskills">Soft Skills</option>
+                </select>
+              </div>
+              <div class="admin-field">
+                <label for="qType">Question Type</label>
+                <select id="qType" class="admin-select" required>
+                  <option value="tf">True / False</option>
+                  <option value="mcq">MCQ (4 options)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="admin-field">
+              <label for="qText">Question Text</label>
+              <textarea id="qText" class="admin-textarea" rows="3" placeholder="Enter the full question text…" required></textarea>
+              <span class="admin-field-err" id="qTextErr"></span>
+            </div>
+
+            <!-- T/F answer section -->
+            <div id="tfSection" class="admin-answer-section">
+              <label>Correct Answer</label>
+              <div class="admin-radio-row">
+                <label class="admin-radio">
+                  <input type="radio" name="tfAnswer" value="true" checked /> True
+                </label>
+                <label class="admin-radio">
+                  <input type="radio" name="tfAnswer" value="false" /> False
+                </label>
+              </div>
+            </div>
+
+            <!-- MCQ answer section -->
+            <div id="mcqSection" class="admin-answer-section" style="display:none">
+              <label>Options & Correct Answer</label>
+              <div class="mcq-options-list" id="mcqOptionsList">
+                <div class="mcq-option-row">
+                  <span class="mcq-label">A</span>
+                  <input type="text" class="admin-input mcq-opt-input" data-idx="0" placeholder="Option A" required />
+                  <label class="admin-radio correct-radio">
+                    <input type="radio" name="correctOpt" value="0" checked /> Correct
+                  </label>
+                </div>
+                <div class="mcq-option-row">
+                  <span class="mcq-label">B</span>
+                  <input type="text" class="admin-input mcq-opt-input" data-idx="1" placeholder="Option B" required />
+                  <label class="admin-radio correct-radio">
+                    <input type="radio" name="correctOpt" value="1" /> Correct
+                  </label>
+                </div>
+                <div class="mcq-option-row">
+                  <span class="mcq-label">C</span>
+                  <input type="text" class="admin-input mcq-opt-input" data-idx="2" placeholder="Option C" required />
+                  <label class="admin-radio correct-radio">
+                    <input type="radio" name="correctOpt" value="2" /> Correct
+                  </label>
+                </div>
+                <div class="mcq-option-row">
+                  <span class="mcq-label">D</span>
+                  <input type="text" class="admin-input mcq-opt-input" data-idx="3" placeholder="Option D" required />
+                  <label class="admin-radio correct-radio">
+                    <input type="radio" name="correctOpt" value="3" /> Correct
+                  </label>
+                </div>
+              </div>
+              <span class="admin-field-err" id="qOptsErr"></span>
+            </div>
+
+            <div class="admin-form-actions">
+              <button type="submit" class="admin-save-btn" id="saveBtn">💾 Save Question</button>
+              <button type="button" class="admin-cancel-btn" id="cancelEditBtn" style="display:none">✕ Cancel Edit</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             TAB 3: SETTINGS
+        ───────────────────────────────────────────── -->
+        <section class="admin-tab" id="settingsTab">
+          <div class="admin-section-header">
+            <h2>Exam Settings</h2>
+          </div>
+
+          <div class="admin-settings-card">
+            <div class="setting-row">
+              <div class="setting-info">
+                <span class="setting-icon">⏱️</span>
+                <div>
+                  <strong>Exam Duration</strong>
+                  <p>Set the time limit for all exams (Medical &amp; Soft Skills).</p>
+                </div>
+              </div>
+              <div class="setting-control">
+                <input type="number" id="durationMinutes" class="admin-input duration-input"
+                  min="1" max="180" value="45" />
+                <span class="setting-unit">minutes</span>
+              </div>
+            </div>
+            <button class="admin-save-btn" id="saveDuration">💾 Save Settings</button>
+            <div class="setting-feedback" id="settingFeedback"></div>
+          </div>
+
+          <div class="admin-settings-card" style="margin-top:1.5rem">
+            <div class="setting-row">
+              <div class="setting-info">
+                <span class="setting-icon">📤</span>
+                <div>
+                  <strong>Export Questions</strong>
+                  <p>Download all questions as a JSON file for backup.</p>
+                </div>
+              </div>
+              <button class="admin-save-btn" id="exportBtn">⬇️ Export JSON</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══ EDIT MODAL ═══ -->
+  <div class="admin-modal-overlay" id="modalOverlay" style="display:none">
+    <div class="admin-modal animate__animated animate__zoomIn">
+      <div class="admin-modal-header">
+        <h3>Edit Question</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="admin-modal-body" id="modalBody">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CONFIRM DELETE MODAL ═══ -->
+  <div class="admin-modal-overlay" id="deleteOverlay" style="display:none">
+    <div class="admin-modal small-modal animate__animated animate__zoomIn">
+      <div class="admin-modal-header">
+        <h3>⚠️ Delete Question</h3>
+      </div>
+      <div class="admin-modal-body">
+        <p>Are you sure you want to delete this question? This action cannot be undone.</p>
+        <div class="admin-form-actions" style="margin-top:1.5rem">
+          <button class="admin-save-btn danger" id="confirmDeleteBtn">Delete</button>
+          <button class="admin-cancel-btn" id="cancelDeleteBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="admin-toast" id="adminToast"></div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bio-NL Exam System — Choose Your Exam</title>
+  <meta name="description" content="Select your exam type: Medical Exam or Soft Skills Exam." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</head>
+<body>
+
+  <div class="choose-page">
+
+    <!-- ── Header ── -->
+    <header class="choose-header animate__animated animate__fadeInDown">
+      <div class="choose-logo">
+        <span class="logo-icon">🧬</span>
+        <span class="logo-text">Bio-NL Exam System</span>
+      </div>
+      <div class="user-meta">
+        <span class="welcome-text">Welcome, <strong id="displayName">Student</strong></span>
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <!-- ── Hero ── -->
+    <main class="choose-main">
+      <div class="choose-hero animate__animated animate__fadeInUp">
+        <h1>Select Your Exam</h1>
+        <p>Choose the exam type below to begin your assessment</p>
+      </div>
+
+      <!-- ── Exam Cards ── -->
+      <div class="exam-cards animate__animated animate__fadeInUp" style="animation-delay:0.15s">
+
+        <!-- Medical Card -->
+        <div class="exam-card medical-card" id="medicalCard" tabindex="0" role="button" aria-label="Start Medical Exam">
+          <div class="card-glow medical-glow"></div>
+          <div class="card-icon">🏥</div>
+          <h2 class="card-title">Medical Exam</h2>
+          <p class="card-desc">
+            Test your knowledge on pharmaceutical products including
+            Orogeng, Doveyderm, Nova Dova, Oroking-C, Jovey Joy, and Quote Fine Cream.
+          </p>
+          <div class="card-meta-row">
+            <span class="card-badge" id="medicalCount">56 Questions</span>
+            <span class="card-badge">45 Minutes</span>
+          </div>
+          <button class="card-btn" id="medicalBtn">
+            Start Exam <span class="arrow">→</span>
+          </button>
+        </div>
+
+        <!-- Soft Skills Card -->
+        <div class="exam-card soft-card" id="softCard" tabindex="0" role="button" aria-label="Start Soft Skills Exam">
+          <div class="card-glow soft-glow"></div>
+          <div class="card-icon">💼</div>
+          <h2 class="card-title">Soft Skills Exam</h2>
+          <p class="card-desc">
+            Evaluate your professional communication, teamwork, client handling,
+            and interpersonal skills as a medical representative.
+          </p>
+          <div class="card-meta-row">
+            <span class="card-badge" id="softCount">15 Questions</span>
+            <span class="card-badge">45 Minutes</span>
+          </div>
+          <button class="card-btn soft-btn" id="softBtn">
+            Start Exam <span class="arrow">→</span>
+          </button>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ── Footer ── -->
+    <footer class="choose-footer">
+      <p>© 2025 Bio-NL Pharmaceutical · All rights reserved</p>
+    </footer>
+
+  </div>
+
+  <script type="module" src="js/choose.js"></script>
+</body>
+</html>
