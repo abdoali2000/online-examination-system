@@ -14,24 +14,6 @@ if (!localStorage.getItem("email")) {
 const examType  = sessionStorage.getItem("examType") || "medical";
 const userEmail = localStorage.getItem("email");
 
-// ── Check if already submitted (via Firestore) ──────────────────────────
-async function checkAlreadyDone() {
-  try {
-    const q = query(
-      collection(db, "examResults"),
-      where("studentEmail", "==", userEmail),
-      where("examType",     "==", examType)
-    );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      window.location.replace("choose.html");
-    }
-  } catch (err) {
-    console.error("[exam] checkAlreadyDone error:", err);
-  }
-}
-await checkAlreadyDone();
-
 let questionsArray = [];
 let myExam;
 let examSubmitted  = false;
@@ -81,28 +63,53 @@ function onFullscreenChange() {
   }
 }
 
-// ── Return to fullscreen button ─────────────────────────────────────────
-window.addEventListener("DOMContentLoaded", () => {
-  const returnBtn = document.getElementById("returnFullscreenBtn");
-  if (returnBtn) {
-    returnBtn.addEventListener("click", async () => {
-      await requestFullscreen().catch(() => {});
-      document.getElementById("fullscreenWarning").style.display = "none";
-    });
-  }
+// ══════════════════════════════════════════════════════════════════════════
+//  UI SETUP
+//  ES modules are deferred — DOM is guaranteed ready when this code runs.
+//  We attach listeners directly WITHOUT waiting for DOMContentLoaded.
+// ══════════════════════════════════════════════════════════════════════════
 
-  const enterBtn = document.getElementById("enterFullscreenBtn");
-  if (enterBtn) {
-    enterBtn.addEventListener("click", async () => {
-      await requestFullscreen().catch(() => {});
-      document.getElementById("fullscreenGate").style.display = "none";
-      initExam();
-    });
+// Return to fullscreen button
+const returnBtn = document.getElementById("returnFullscreenBtn");
+if (returnBtn) {
+  returnBtn.addEventListener("click", async () => {
+    await requestFullscreen().catch(() => {});
+    document.getElementById("fullscreenWarning").style.display = "none";
+  });
+}
+
+// Gate: Enter Fullscreen & Start
+const enterBtn = document.getElementById("enterFullscreenBtn");
+if (enterBtn) {
+  enterBtn.addEventListener("click", async () => {
+    await requestFullscreen().catch(() => {});
+    document.getElementById("fullscreenGate").style.display = "none";
+    initExam();
+  });
+}
+
+// ── Check if already submitted (async, fire-and-forget) ─────────────────
+// Runs in the background — if done, redirects. No await at top level
+// to avoid blocking UI listener registration.
+async function checkAlreadyDone() {
+  try {
+    const q = query(
+      collection(db, "examResults"),
+      where("studentEmail", "==", userEmail),
+      where("examType",     "==", examType)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      window.location.replace("choose.html");
+    }
+  } catch (err) {
+    console.error("[exam] checkAlreadyDone error:", err);
   }
-});
+}
+checkAlreadyDone(); // fire-and-forget (no top-level await)
 
 // ══════════════════════════════════════════════════════════════════════════
-//  EXAM INIT
+//  EXAM INIT (called after user enters fullscreen)
 // ══════════════════════════════════════════════════════════════════════════
 function initExam() {
   const duration = parseInt(localStorage.getItem("examDuration") || String(DEFAULT_EXAM_DURATION_SECONDS), 10);
@@ -187,7 +194,6 @@ async function saveExamResult(isTimeout) {
       answers:      answers
     };
 
-    // Save to Firestore examResults collection
     await addDoc(collection(db, "examResults"), result);
     console.log("[saveExamResult] Saved to Firestore for", studentEmail, "score:", calculatedScore, "/", questionsArray.length);
 
