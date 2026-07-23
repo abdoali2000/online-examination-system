@@ -164,13 +164,15 @@ function saveExamResult(isTimeout) {
       };
     });
 
+    const calculatedScore = answers.filter(a => a.isCorrect).length;
+
     const result = {
       id:             Date.now(),
       timestamp:      new Date().toISOString(),
       examType:       examType,
       studentName:    `${firstName} ${lastName}`.trim(),
       studentEmail:   studentEmail,
-      score:          myExam.grades,
+      score:          calculatedScore,
       total:          questionsArray.length,
       isTimeout:      isTimeout,
       violations:     violationCount,

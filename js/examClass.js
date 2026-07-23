@@ -207,7 +207,6 @@ export class Question {
     // Restore previously saved answer — neutral highlight only, no correct/wrong reveal
     const saved = this.questionsArray[this.index].selectedAnswer;
     if (saved) {
-      this.isAnswered = true;
       document.querySelectorAll(".answer-item").forEach(item => {
         if (item.dataset.answer === saved) {
           item.classList.add("selected");
@@ -232,16 +231,8 @@ export class Question {
 
   // ── Check answer ───────────────────────────────────────────
   checkAnswers(li) {
-    if (this.isAnswered) return;
-    this.isAnswered = true;
-
     const chosen = li.dataset.answer;
     this.questionsArray[this.index].selectedAnswer = chosen;
-
-    // Track grade silently for admin — no visual feedback shown to student
-    if (chosen === this.correctAnswer) {
-      this.myExam.grades++;
-    }
 
     // Just show neutral "selected" state
     document.querySelectorAll(".answer-item").forEach(item => item.classList.remove("selected"));
