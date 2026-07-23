@@ -1,6 +1,4 @@
-if(localStorage.getItem("email")){
-    window.location.replace("index.html");
-}
+// Auth guard removed so users can re-register if they made a mistake.
 //name
 const firstName = document.querySelector("#Fname");
 const lastName = document.querySelector("#Lname");
