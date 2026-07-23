@@ -76,6 +76,11 @@ if (!hasSoft) {
 
 // ── Logout ───────────────────────────────────────────────────────────────
 document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.removeItem("email");
+  localStorage.removeItem("f_name");
+  localStorage.removeItem("l_name");
+  localStorage.removeItem("password");
+  localStorage.removeItem("image");
   sessionStorage.clear();
   window.location.replace("index.html");
 });
