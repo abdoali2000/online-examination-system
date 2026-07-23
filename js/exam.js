@@ -135,45 +135,55 @@ function initExam() {
   });
 }
 
-// ── Save exam result to localStorage for admin ───────────────────────────
+// ── Save exam result to localStorage for admin ─────────────────────────────────────────
 function saveExamResult(isTimeout) {
-  const firstName    = localStorage.getItem("f_name") || "Student";
-  const lastName     = localStorage.getItem("l_name") || "";
-  const studentEmail = localStorage.getItem("email")  || "";
+  try {
+    if (!myExam || !questionsArray || questionsArray.length === 0) {
+      console.error("[saveExamResult] Cannot save: exam not initialized.");
+      return;
+    }
 
-  const answers = questionsArray.map(q => {
-    const correctAnswer = q.type === "tf"
-      ? (q.correct ? "True" : "False")
-      : q.options[q.correctIndex];
-    const selected = q.selectedAnswer || null;
-    return {
-      questionId:     q.id,
-      questionText:   q.text,
-      questionType:   q.type,
-      options:        q.type === "mcq" ? q.options : ["True", "False"],
-      selectedAnswer: selected,
-      correctAnswer:  correctAnswer,
-      isCorrect:      selected !== null && selected === correctAnswer,
-      skipped:        selected === null || selected === undefined
+    const firstName    = localStorage.getItem("f_name") || "Student";
+    const lastName     = localStorage.getItem("l_name") || "";
+    const studentEmail = localStorage.getItem("email")  || "";
+
+    const answers = questionsArray.map(q => {
+      const correctAnswer = q.type === "tf"
+        ? (q.correct ? "True" : "False")
+        : q.options[q.correctIndex];
+      const selected = q.selectedAnswer || null;
+      return {
+        questionId:     q.id,
+        questionText:   q.text,
+        questionType:   q.type,
+        options:        q.type === "mcq" ? q.options : ["True", "False"],
+        selectedAnswer: selected,
+        correctAnswer:  correctAnswer,
+        isCorrect:      selected !== null && selected === correctAnswer,
+        skipped:        selected === null || selected === undefined
+      };
+    });
+
+    const result = {
+      id:             Date.now(),
+      timestamp:      new Date().toISOString(),
+      examType:       examType,
+      studentName:    `${firstName} ${lastName}`.trim(),
+      studentEmail:   studentEmail,
+      score:          myExam.grades,
+      total:          questionsArray.length,
+      isTimeout:      isTimeout,
+      violations:     violationCount,
+      answers:        answers
     };
-  });
 
-  const result = {
-    id:             Date.now(),
-    timestamp:      new Date().toISOString(),
-    examType:       examType,
-    studentName:    `${firstName} ${lastName}`.trim(),
-    studentEmail:   studentEmail,
-    score:          myExam.grades,
-    total:          questionsArray.length,
-    isTimeout:      isTimeout,
-    violations:     violationCount,
-    answers:        answers
-  };
-
-  const existing = JSON.parse(localStorage.getItem("examResults") || "[]");
-  existing.push(result);
-  localStorage.setItem("examResults", JSON.stringify(existing));
+    const existing = JSON.parse(localStorage.getItem("examResults") || "[]");
+    existing.push(result);
+    localStorage.setItem("examResults", JSON.stringify(existing));
+    console.log("[saveExamResult] Saved result for", studentEmail, "score:", result.score, "/", result.total);
+  } catch (err) {
+    console.error("[saveExamResult] Error saving result:", err);
+  }
 }
 
 // ── Result Page (submitted on time) ──────────────────────────────────────

@@ -3,7 +3,7 @@
 //  Supports both T/F and MCQ question formats from questions.js
 // ============================================================
 
-const questionCards = document.querySelector(".exam-body");
+let questionCards = null; // set lazily inside displayQuestions()
 
 // ──────────────────────────────────────────────────────────────
 //  Exam class — holds grades, timer, and marked questions
@@ -108,6 +108,10 @@ export class Question {
 
   // ── Render question card ───────────────────────────────────
   displayQuestions() {
+    // Lazily resolve the exam body element (it's ready by the time this is called)
+    questionCards = questionCards || document.querySelector(".exam-body");
+    if (!questionCards) return;
+
     const total    = this.questionsArray.length;
     const isMarked = this.myExam.isMarked(this.index);
     const typeBadge = this.questionType === "tf" ? "True / False" : "MCQ";

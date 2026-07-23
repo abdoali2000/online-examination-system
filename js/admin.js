@@ -84,6 +84,11 @@ function initTabs() {
       document.querySelectorAll(".admin-tab").forEach(t => t.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(targetId).classList.add("active");
+
+      // Always re-render results when switching to the Results tab
+      if (targetId === "resultsTab") {
+        renderResults();
+      }
     });
   });
 }
@@ -475,6 +480,12 @@ function initResults() {
   // Filters
   document.getElementById("filterResultExam").addEventListener("change", renderResults);
   document.getElementById("filterResultSearch").addEventListener("input", renderResults);
+
+  // Refresh button
+  document.getElementById("refreshResultsBtn").addEventListener("click", () => {
+    renderResults();
+    showToast("Results refreshed ✅");
+  });
 
   // Clear all
   document.getElementById("clearResultsBtn").addEventListener("click", () => {
