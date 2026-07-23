@@ -23,8 +23,8 @@ export class Exam {
       localStorage.getItem("adminQuestions") || "[]"
     );
     const filtered = allQuestions.filter(q => q.examType === this.examType);
-    // Shuffle
-    return filtered.sort(() => Math.random() - 0.5);
+    // Return in original order (no shuffle)
+    return filtered;
   }
 
   // ── Timer ──────────────────────────────────────────────────
