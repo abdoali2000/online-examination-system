@@ -159,6 +159,12 @@ export class Question {
 
     this.renderMarkList();
     this.attachListeners();
+
+    // Show submit button only on the last question
+    const submitBtn = document.getElementById("submitBtn");
+    if (submitBtn) {
+      submitBtn.style.display = this.index === total - 1 ? "inline-block" : "none";
+    }
   }
 
   // ── Render marked question sidebar ────────────────────────

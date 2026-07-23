@@ -10,6 +10,15 @@ if (!localStorage.getItem("email")) {
 // ── Read exam type from session ─────────────────────────────────────────
 const examType = sessionStorage.getItem("examType") || "medical";
 
+// ── Check if already submitted ──────────────────────────────────────────
+const userEmail   = localStorage.getItem("email");
+const results     = JSON.parse(localStorage.getItem("examResults") || "[]");
+const alreadyDone = results.some(r => r.studentEmail === userEmail && r.examType === examType);
+
+if (alreadyDone) {
+  window.location.replace("choose.html");
+}
+
 let questionsArray = [];
 let myExam;
 

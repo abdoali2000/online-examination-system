@@ -1653,6 +1653,27 @@ body {
 
 .admin-toast.error { border-color: rgba(231,76,60,0.5); background: #3a1a1a; }
 
+/* ── Completed Exam Card State ── */
+.completed-card {
+  opacity: 0.6;
+  filter: grayscale(80%);
+  cursor: not-allowed !important;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.completed-card .card-glow {
+  display: none;
+}
+
+.completed-card .card-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE — Admin & Choose
 ═══════════════════════════════════════════════════════════════ */
