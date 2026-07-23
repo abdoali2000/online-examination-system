@@ -1676,3 +1676,171 @@ body {
   .exam-cards { grid-template-columns: 1fr; }
   .admin-modal { padding: 1.25rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESULT DETAIL MODAL (Admin)
+═══════════════════════════════════════════════════════════════ */
+.result-detail-modal {
+  max-width: 780px;
+  max-height: 88vh;
+}
+
+.result-detail-meta {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.45);
+  margin: 0.35rem 0 0;
+}
+
+/* ── Summary row ── */
+.rd-summary {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.rd-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 80px;
+}
+
+.rd-stat span {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+}
+
+.rd-stat strong {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ── Answers list ── */
+.rd-answers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  max-height: 55vh;
+  padding-right: 4px;
+}
+
+/* ── Question card ── */
+.rd-question {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.rd-question.correct {
+  border-left: 3px solid #2ecc71;
+  background: rgba(46,204,113,0.04);
+}
+
+.rd-question.wrong {
+  border-left: 3px solid #e74c3c;
+  background: rgba(231,76,60,0.04);
+}
+
+.rd-question.skipped {
+  border-left: 3px solid #f5a623;
+  background: rgba(245,166,35,0.04);
+}
+
+.rd-q-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.rd-q-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+}
+
+.rd-result-icon {
+  margin-left: auto;
+  font-size: 1rem;
+}
+
+.rd-skip-badge {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f5a623;
+  background: rgba(245,166,35,0.12);
+  padding: 2px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(245,166,35,0.25);
+}
+
+.rd-q-text {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.55;
+  margin: 0 0 0.75rem;
+}
+
+/* ── Answer options ── */
+.rd-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rd-option {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Student selected + correct answer → GREEN */
+.rd-correct-selected {
+  background: rgba(46,204,113,0.15) !important;
+  border-color: rgba(46,204,113,0.4) !important;
+  color: #2ecc71 !important;
+  font-weight: 700;
+}
+
+/* Student selected + wrong answer → RED */
+.rd-wrong-selected {
+  background: rgba(231,76,60,0.15) !important;
+  border-color: rgba(231,76,60,0.4) !important;
+  color: #e74c3c !important;
+  font-weight: 700;
+}
+
+/* Correct answer not selected (show what was right) → GREEN dashed */
+.rd-correct-unselected {
+  background: rgba(46,204,113,0.06) !important;
+  border: 1px dashed rgba(46,204,113,0.4) !important;
+  color: rgba(46,204,113,0.8) !important;
+  font-style: italic;
+}
+
+/* ── Correct note for skipped questions ── */
+.rd-correct-note {
+  font-size: 0.82rem;
+  color: rgba(46,204,113,0.7);
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+  border: 1px dashed rgba(46,204,113,0.25);
+  background: rgba(46,204,113,0.05);
+}
+

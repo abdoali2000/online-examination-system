@@ -69,6 +69,9 @@
         <button class="admin-nav-btn" data-tab="addTab" id="navAdd">
           <span>➕</span> Add Question
         </button>
+        <button class="admin-nav-btn" data-tab="resultsTab" id="navResults">
+          <span>📊</span> Results
+        </button>
         <button class="admin-nav-btn" data-tab="settingsTab" id="navSettings">
           <span>⚙️</span> Settings
         </button>
@@ -221,7 +224,52 @@
         </section>
 
         <!-- ─────────────────────────────────────────────
-             TAB 3: SETTINGS
+             TAB 3: RESULTS
+        ───────────────────────────────────────────── -->
+        <section class="admin-tab" id="resultsTab">
+          <div class="admin-section-header">
+            <h2>Student Results</h2>
+            <div class="admin-stats" id="resultsStats">
+              <span class="stat-chip" id="statResultsTotal">Total: 0</span>
+              <span class="stat-chip medical" id="statResultsMedical">Medical: 0</span>
+              <span class="stat-chip soft" id="statResultsSoft">Soft Skills: 0</span>
+            </div>
+          </div>
+
+          <div class="admin-filters">
+            <select id="filterResultExam" class="admin-select">
+              <option value="all">All Exam Types</option>
+              <option value="medical">Medical</option>
+              <option value="softskills">Soft Skills</option>
+            </select>
+            <input type="text" id="filterResultSearch" class="admin-search" placeholder="🔍 Search by name or email…" />
+            <button class="admin-reset-btn" id="clearResultsBtn">🗑️ Clear All Results</button>
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="resultsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student</th>
+                  <th>Email</th>
+                  <th>Exam</th>
+                  <th>Score</th>
+                  <th>%</th>
+                  <th>Status</th>
+                  <th>Date &amp; Time</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody">
+                <tr><td colspan="9" class="admin-loading">No results yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             TAB 4: ADD QUESTION
         ───────────────────────────────────────────── -->
         <section class="admin-tab" id="settingsTab">
           <div class="admin-section-header">
@@ -290,6 +338,22 @@
           <button class="admin-save-btn danger" id="confirmDeleteBtn">Delete</button>
           <button class="admin-cancel-btn" id="cancelDeleteBtn">Cancel</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RESULT DETAIL MODAL ═══ -->
+  <div class="admin-modal-overlay" id="resultDetailOverlay" style="display:none">
+    <div class="admin-modal result-detail-modal animate__animated animate__zoomIn">
+      <div class="admin-modal-header">
+        <div>
+          <h3 id="resultDetailTitle">Student Result</h3>
+          <p class="result-detail-meta" id="resultDetailMeta"></p>
+        </div>
+        <button class="modal-close" id="resultDetailClose">✕</button>
+      </div>
+      <div class="admin-modal-body" id="resultDetailBody">
+        <!-- Populated by JS -->
       </div>
     </div>
   </div>

@@ -72,6 +72,7 @@ function initDashboard() {
   initSettings();
   initExport();
   initResetDefault();
+  initResults();
 }
 
 // ── Tab Navigation ────────────────────────────────────────────────────────
@@ -460,9 +461,181 @@ function showToast(msg, type = "success") {
   toastTimer = setTimeout(() => { toast.className = "admin-toast"; }, 3000);
 }
 
+
 // ══════════════════════════════════════════════════════════════════════════
-//  UTILITY
+//  RESULTS TAB
 // ══════════════════════════════════════════════════════════════════════════
-function escHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function getResults() {
+  return JSON.parse(localStorage.getItem("examResults") || "[]");
 }
+
+function initResults() {
+  renderResults();
+
+  // Filters
+  document.getElementById("filterResultExam").addEventListener("change", renderResults);
+  document.getElementById("filterResultSearch").addEventListener("input", renderResults);
+
+  // Clear all
+  document.getElementById("clearResultsBtn").addEventListener("click", () => {
+    if (!confirm("This will permanently delete ALL student results. Are you sure?")) return;
+    localStorage.removeItem("examResults");
+    renderResults();
+    showToast("All results cleared 🗑️");
+  });
+
+  // Detail modal close
+  document.getElementById("resultDetailClose").addEventListener("click", () => {
+    document.getElementById("resultDetailOverlay").style.display = "none";
+  });
+  document.getElementById("resultDetailOverlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("resultDetailOverlay")) {
+      document.getElementById("resultDetailOverlay").style.display = "none";
+    }
+  });
+}
+
+function renderResults() {
+  const all        = getResults();
+  const examFilter = document.getElementById("filterResultExam").value;
+  const search     = document.getElementById("filterResultSearch").value.toLowerCase();
+
+  // Stats
+  const medCount  = all.filter(r => r.examType === "medical").length;
+  const softCount = all.filter(r => r.examType === "softskills").length;
+  document.getElementById("statResultsTotal").textContent   = `Total: ${all.length}`;
+  document.getElementById("statResultsMedical").textContent = `Medical: ${medCount}`;
+  document.getElementById("statResultsSoft").textContent    = `Soft Skills: ${softCount}`;
+
+  // Filter
+  let filtered = all;
+  if (examFilter !== "all") filtered = filtered.filter(r => r.examType === examFilter);
+  if (search) filtered = filtered.filter(r =>
+    r.studentName.toLowerCase().includes(search) ||
+    r.studentEmail.toLowerCase().includes(search)
+  );
+
+  // Sort newest first
+  filtered = [...filtered].sort((a, b) => b.id - a.id);
+
+  const tbody = document.getElementById("resultsBody");
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="admin-loading">No results match the current filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    const pct        = Math.round((r.score / r.total) * 100);
+    const examBadge  = r.examType === "medical"
+      ? `<span class="q-badge medical-badge">🏥 Medical</span>`
+      : `<span class="q-badge soft-badge">💼 Soft Skills</span>`;
+    const statusBadge = r.isTimeout
+      ? `<span class="q-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.3)">⏰ Timeout</span>`
+      : `<span class="q-badge tf-badge">✅ Submitted</span>`;
+    const pctColor = pct >= 70 ? "#2ecc71" : pct >= 50 ? "#f5a623" : "#e74c3c";
+    const dateStr  = new Date(r.timestamp).toLocaleString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+
+    return `
+      <tr data-result-id="${r.id}">
+        <td class="row-num">${i + 1}</td>
+        <td style="font-weight:600;color:rgba(255,255,255,.9)">${escHtml(r.studentName)}</td>
+        <td style="color:rgba(255,255,255,.55);font-size:.82rem">${escHtml(r.studentEmail)}</td>
+        <td>${examBadge}</td>
+        <td><strong style="color:rgba(255,255,255,.9)">${r.score}</strong><span style="color:rgba(255,255,255,.4)"> / ${r.total}</span></td>
+        <td><span style="color:${pctColor};font-weight:700">${pct}%</span></td>
+        <td>${statusBadge}</td>
+        <td style="color:rgba(255,255,255,.45);font-size:.8rem;white-space:nowrap">${dateStr}</td>
+        <td><button class="tbl-btn view-result-btn" data-id="${r.id}" title="View Details">👁️ Details</button></td>
+      </tr>`;
+  }).join("");
+
+  // Attach view listeners
+  document.querySelectorAll(".view-result-btn").forEach(btn =>
+    btn.addEventListener("click", () => openResultDetail(parseInt(btn.dataset.id)))
+  );
+}
+
+function openResultDetail(id) {
+  const results = getResults();
+  const r = results.find(r => r.id === id);
+  if (!r) return;
+
+  const pct      = Math.round((r.score / r.total) * 100);
+  const dateStr  = new Date(r.timestamp).toLocaleString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+  const pctColor = pct >= 70 ? "#2ecc71" : pct >= 50 ? "#f5a623" : "#e74c3c";
+
+  document.getElementById("resultDetailTitle").textContent =
+    `${r.studentName} — ${r.examType === "medical" ? "🏥 Medical" : "💼 Soft Skills"} Exam`;
+  document.getElementById("resultDetailMeta").innerHTML =
+    `📧 ${escHtml(r.studentEmail)} &nbsp;| ` +
+    `📅 ${dateStr} &nbsp;| ` +
+    `Score: <strong style="color:${pctColor}">${r.score} / ${r.total} (${pct}%)</strong>` +
+    (r.isTimeout ? ` &nbsp;| <span style="color:#e74c3c">⏰ Timeout</span>` : "");
+
+  // Build answers HTML
+  const answersHtml = r.answers.map((a, idx) => {
+    const typeBadge = a.questionType === "tf"
+      ? `<span class="q-badge tf-badge">T/F</span>`
+      : `<span class="q-badge mcq-badge">MCQ</span>`;
+
+    if (a.skipped) {
+      return `
+        <div class="rd-question skipped">
+          <div class="rd-q-header">
+            ${typeBadge}
+            <span class="rd-q-num">Q${idx + 1}</span>
+            <span class="rd-skip-badge">⏩ Skipped</span>
+          </div>
+          <p class="rd-q-text">${escHtml(a.questionText)}</p>
+          <div class="rd-correct-note">✔ Correct answer: <strong>${escHtml(a.correctAnswer)}</strong></div>
+        </div>`;
+    }
+
+    const optionsHtml = a.options.map((opt, i) => {
+      const label     = a.questionType === "mcq" ? String.fromCharCode(65 + i) + ". " : "";
+      const isSelected = opt === a.selectedAnswer;
+      const isCorrect  = opt === a.correctAnswer;
+
+      let cls = "rd-option";
+      let icon = "";
+      if (isSelected && isCorrect)  { cls += " rd-correct-selected"; icon = " ✔️"; }
+      else if (isSelected && !isCorrect) { cls += " rd-wrong-selected";   icon = " ❌"; }
+      else if (!isSelected && isCorrect) { cls += " rd-correct-unselected"; icon = " ✔️ correct"; }
+
+      return `<div class="${cls}">${label}${escHtml(opt)}${icon}</div>`;
+    }).join("");
+
+    const resultIcon = a.isCorrect ? "✅" : "❌";
+    const resultCls  = a.isCorrect ? "rd-question correct" : "rd-question wrong";
+
+    return `
+      <div class="${resultCls}">
+        <div class="rd-q-header">
+          ${typeBadge}
+          <span class="rd-q-num">Q${idx + 1}</span>
+          <span class="rd-result-icon">${resultIcon}</span>
+        </div>
+        <p class="rd-q-text">${escHtml(a.questionText)}</p>
+        <div class="rd-options">${optionsHtml}</div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("resultDetailBody").innerHTML = `
+    <div class="rd-summary">
+      <div class="rd-stat"><span>✅ Correct</span><strong style="color:#2ecc71">${r.score}</strong></div>
+      <div class="rd-stat"><span>❌ Wrong</span><strong style="color:#e74c3c">${r.total - r.score - r.answers.filter(a => a.skipped).length}</strong></div>
+      <div class="rd-stat"><span>⏩ Skipped</span><strong style="color:#f5a623">${r.answers.filter(a => a.skipped).length}</strong></div>
+      <div class="rd-stat"><span>📊 Score</span><strong style="color:${pctColor}">${pct}%</strong></div>
+    </div>
+    <div class="rd-answers-list">${answersHtml}</div>
+  `;
+
+  document.getElementById("resultDetailOverlay").style.display = "flex";
+}
+

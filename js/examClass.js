@@ -194,17 +194,13 @@ export class Question {
       li.addEventListener("click", () => this.checkAnswers(li))
     );
 
-    // Restore previously saved answer
+    // Restore previously saved answer — neutral highlight only, no correct/wrong reveal
     const saved = this.questionsArray[this.index].selectedAnswer;
     if (saved) {
       this.isAnswered = true;
       document.querySelectorAll(".answer-item").forEach(item => {
-        const val = item.dataset.answer;
-        if (val === saved) {
-          item.classList.add(saved === this.correctAnswer ? "correct" : "wrong");
-        }
-        if (val === this.correctAnswer && saved !== this.correctAnswer) {
-          item.classList.add("correct");
+        if (item.dataset.answer === saved) {
+          item.classList.add("selected");
         }
       });
     }
@@ -232,16 +228,14 @@ export class Question {
     const chosen = li.dataset.answer;
     this.questionsArray[this.index].selectedAnswer = chosen;
 
+    // Track grade silently for admin — no visual feedback shown to student
     if (chosen === this.correctAnswer) {
       this.myExam.grades++;
-      li.classList.add("correct", "animate__animated", "animate__pulse");
-    } else {
-      li.classList.add("wrong", "animate__animated", "animate__shakeX");
-      document.querySelectorAll(".answer-item").forEach(item => {
-        if (item.dataset.answer === this.correctAnswer)
-          item.classList.add("correct");
-      });
     }
+
+    // Just show neutral "selected" state
+    document.querySelectorAll(".answer-item").forEach(item => item.classList.remove("selected"));
+    li.classList.add("selected");
   }
 
   // ── Navigation ─────────────────────────────────────────────

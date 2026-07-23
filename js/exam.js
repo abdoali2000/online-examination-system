@@ -54,15 +54,53 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// ── Result Page ──────────────────────────────────────────────────────────
+// ── Save exam result to localStorage for admin ───────────────────────────
+function saveExamResult(isTimeout) {
+  const firstName   = localStorage.getItem("f_name") || "Student";
+  const lastName    = localStorage.getItem("l_name") || "";
+  const studentEmail = localStorage.getItem("email") || "";
+
+  const answers = questionsArray.map(q => {
+    const correctAnswer = q.type === "tf"
+      ? (q.correct ? "True" : "False")
+      : q.options[q.correctIndex];
+    const selected = q.selectedAnswer || null;
+    return {
+      questionId:     q.id,
+      questionText:   q.text,
+      questionType:   q.type,
+      options:        q.type === "mcq" ? q.options : ["True", "False"],
+      selectedAnswer: selected,
+      correctAnswer:  correctAnswer,
+      isCorrect:      selected !== null && selected === correctAnswer,
+      skipped:        selected === null || selected === undefined
+    };
+  });
+
+  const result = {
+    id:           Date.now(),
+    timestamp:    new Date().toISOString(),
+    examType:     examType,
+    studentName:  `${firstName} ${lastName}`.trim(),
+    studentEmail: studentEmail,
+    score:        myExam.grades,
+    total:        questionsArray.length,
+    isTimeout:    isTimeout,
+    answers:      answers
+  };
+
+  const existing = JSON.parse(localStorage.getItem("examResults") || "[]");
+  existing.push(result);
+  localStorage.setItem("examResults", JSON.stringify(existing));
+}
+
+// ── Result Page (submitted on time) ──────────────────────────────────────
 function showGradesPage() {
+  saveExamResult(false);
+
   const firstName  = localStorage.getItem("f_name") || "Student";
   const lastName   = localStorage.getItem("l_name") || "";
   const savedImage = localStorage.getItem("image")  || "";
-  const total      = questionsArray.length;
-  const score      = myExam.grades;
-  const pct        = Math.round((score / total) * 100);
-
   const imgTag = savedImage
     ? `<img id="imagepreview" src="${savedImage}" alt="Profile" />`
     : "";
@@ -72,11 +110,7 @@ function showGradesPage() {
       ${imgTag}
       <div class="result-icon">🎉</div>
       <h2>Well done, <span class="result-name">${firstName} ${lastName}</span>!</h2>
-      <div class="score-badge">
-        ${score} <span>/ ${total}</span>
-      </div>
-      <div class="score-pct">${pct}%</div>
-      <p>You submitted the exam on time. Great job!</p>
+      <p>Your exam has been submitted successfully.<br/>Thank you for your time and effort!</p>
       <div class="result-actions">
         <button class="btn-retry" onclick="window.location.href='choose.html'">← Choose Exam</button>
       </div>
@@ -86,11 +120,11 @@ function showGradesPage() {
 
 // ── Timeout Page ──────────────────────────────────────────────────────────
 function showTimeoutPage() {
+  saveExamResult(true);
+
   const firstName  = localStorage.getItem("f_name") || "Student";
   const lastName   = localStorage.getItem("l_name") || "";
   const savedImage = localStorage.getItem("image")  || "";
-  const total      = questionsArray.length;
-
   const imgTag = savedImage
     ? `<img id="imagepreview" src="${savedImage}" alt="Profile" />`
     : "";
@@ -101,9 +135,8 @@ function showTimeoutPage() {
       <div class="result-icon">⏰</div>
       <h2>Time's up, <span class="result-name">${firstName} ${lastName}</span>!</h2>
       <p>
-        Unfortunately your exam time has ended before you could submit.<br/>
-        You answered <strong>${myExam.grades}</strong> out of
-        <strong>${total}</strong> correctly.
+        Your exam time has ended. Your responses have been recorded.<br/>
+        Thank you for participating!
       </p>
       <div class="result-actions">
         <button class="btn-retry" onclick="window.location.href='choose.html'">← Choose Exam</button>
