@@ -1,5 +1,5 @@
-if(!localStorage.getItem("email")){
-    window.location.replace("register.html");
+if(localStorage.getItem("email")){
+    window.location.replace("choose.html");
 }
 // name
 const email = document.querySelector("#email");

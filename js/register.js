@@ -191,7 +191,7 @@ form.addEventListener("submit", (e) => {
         localStorage.setItem("image", file.files.length > 0 ? imagePreview.src : "")
         console.log(localStorage)
         setTimeout(() => {
-            window.location.replace("index.html");
+            window.location.replace("choose.html");
         }, 1500);
     }
 });
