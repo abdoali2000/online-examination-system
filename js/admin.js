@@ -520,7 +520,7 @@ function renderResults() {
 
   const tbody = document.getElementById("resultsBody");
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="admin-loading">No results match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-loading">No results match the current filters.</td></tr>`;
     return;
   }
 
@@ -538,6 +538,10 @@ function renderResults() {
       hour: "2-digit", minute: "2-digit"
     });
 
+    const violationBadge = (r.violations && r.violations > 0)
+      ? `<span class="q-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.3)">⚠️ ${r.violations}</span>`
+      : `<span class="q-badge tf-badge">✅ 0</span>`;
+
     return `
       <tr data-result-id="${r.id}">
         <td class="row-num">${i + 1}</td>
@@ -547,6 +551,7 @@ function renderResults() {
         <td><strong style="color:rgba(255,255,255,.9)">${r.score}</strong><span style="color:rgba(255,255,255,.4)"> / ${r.total}</span></td>
         <td><span style="color:${pctColor};font-weight:700">${pct}%</span></td>
         <td>${statusBadge}</td>
+        <td>${violationBadge}</td>
         <td style="color:rgba(255,255,255,.45);font-size:.8rem;white-space:nowrap">${dateStr}</td>
         <td><button class="tbl-btn view-result-btn" data-id="${r.id}" title="View Details">👁️ Details</button></td>
       </tr>`;
@@ -573,10 +578,11 @@ function openResultDetail(id) {
   document.getElementById("resultDetailTitle").textContent =
     `${r.studentName} — ${r.examType === "medical" ? "🏥 Medical" : "💼 Soft Skills"} Exam`;
   document.getElementById("resultDetailMeta").innerHTML =
-    `📧 ${escHtml(r.studentEmail)} &nbsp;| ` +
-    `📅 ${dateStr} &nbsp;| ` +
+    `📧 ${escHtml(r.studentEmail)} &nbsp;| ` +
+    `📅 ${dateStr} &nbsp;| ` +
     `Score: <strong style="color:${pctColor}">${r.score} / ${r.total} (${pct}%)</strong>` +
-    (r.isTimeout ? ` &nbsp;| <span style="color:#e74c3c">⏰ Timeout</span>` : "");
+    (r.isTimeout ? ` &nbsp;| <span style="color:#e74c3c">⏰ Timeout</span>` : "") +
+    (r.violations > 0 ? ` &nbsp;| <span style="color:#e74c3c">⚠️ ${r.violations} violation(s)</span>` : "");
 
   // Build answers HTML
   const answersHtml = r.answers.map((a, idx) => {
@@ -632,6 +638,7 @@ function openResultDetail(id) {
       <div class="rd-stat"><span>❌ Wrong</span><strong style="color:#e74c3c">${r.total - r.score - r.answers.filter(a => a.skipped).length}</strong></div>
       <div class="rd-stat"><span>⏩ Skipped</span><strong style="color:#f5a623">${r.answers.filter(a => a.skipped).length}</strong></div>
       <div class="rd-stat"><span>📊 Score</span><strong style="color:${pctColor}">${pct}%</strong></div>
+      <div class="rd-stat"><span>⚠️ Violations</span><strong style="color:${(r.violations||0) > 0 ? '#e74c3c' : '#2ecc71'}">${r.violations || 0}</strong></div>
     </div>
     <div class="rd-answers-list">${answersHtml}</div>
   `;

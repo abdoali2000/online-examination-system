@@ -21,9 +21,79 @@ if (alreadyDone) {
 
 let questionsArray = [];
 let myExam;
+let examSubmitted   = false;
+let violationCount  = 0;
 
+// ══════════════════════════════════════════════════════════════════════════
+//  FULLSCREEN HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+function requestFullscreen() {
+  const el = document.documentElement;
+  if (el.requestFullscreen)          return el.requestFullscreen();
+  if (el.webkitRequestFullscreen)    return el.webkitRequestFullscreen();
+  if (el.mozRequestFullScreen)       return el.mozRequestFullScreen();
+  if (el.msRequestFullscreen)        return el.msRequestFullscreen();
+  return Promise.resolve();
+}
+
+function exitFullscreen() {
+  if (document.exitFullscreen)          return document.exitFullscreen();
+  if (document.webkitExitFullscreen)    return document.webkitExitFullscreen();
+  if (document.mozCancelFullScreen)     return document.mozCancelFullScreen();
+  if (document.msExitFullscreen)        return document.msExitFullscreen();
+  return Promise.resolve();
+}
+
+function isFullscreen() {
+  return !!(
+    document.fullscreenElement       ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement    ||
+    document.msFullscreenElement
+  );
+}
+
+// ── Listen for fullscreen exit during exam ──────────────────────────────
+["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "msfullscreenchange"]
+  .forEach(evt => document.addEventListener(evt, onFullscreenChange));
+
+function onFullscreenChange() {
+  if (!isFullscreen() && !examSubmitted) {
+    violationCount++;
+    const badge = document.getElementById("violationCountEl");
+    if (badge) badge.textContent = violationCount;
+
+    const warning = document.getElementById("fullscreenWarning");
+    if (warning) warning.style.display = "flex";
+  }
+}
+
+// ── Return to fullscreen button ─────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
-  // Load duration from localStorage (admin may have changed it)
+  // Return button inside warning overlay
+  const returnBtn = document.getElementById("returnFullscreenBtn");
+  if (returnBtn) {
+    returnBtn.addEventListener("click", async () => {
+      await requestFullscreen().catch(() => {});
+      document.getElementById("fullscreenWarning").style.display = "none";
+    });
+  }
+
+  // Gate: Enter Fullscreen & Start
+  const enterBtn = document.getElementById("enterFullscreenBtn");
+  if (enterBtn) {
+    enterBtn.addEventListener("click", async () => {
+      await requestFullscreen().catch(() => {});
+      document.getElementById("fullscreenGate").style.display = "none";
+      initExam();
+    });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//  EXAM INIT (called after user enters fullscreen)
+// ══════════════════════════════════════════════════════════════════════════
+function initExam() {
   const duration = parseInt(localStorage.getItem("examDuration") || String(DEFAULT_EXAM_DURATION_SECONDS), 10);
 
   // Update page title with exam type
@@ -59,15 +129,17 @@ window.addEventListener("DOMContentLoaded", () => {
   // Submit button
   document.getElementById("submitBtn").addEventListener("click", () => {
     myExam.stopTimer();
+    examSubmitted = true;
+    exitFullscreen().catch(() => {});
     showGradesPage();
   });
-});
+}
 
 // ── Save exam result to localStorage for admin ───────────────────────────
 function saveExamResult(isTimeout) {
-  const firstName   = localStorage.getItem("f_name") || "Student";
-  const lastName    = localStorage.getItem("l_name") || "";
-  const studentEmail = localStorage.getItem("email") || "";
+  const firstName    = localStorage.getItem("f_name") || "Student";
+  const lastName     = localStorage.getItem("l_name") || "";
+  const studentEmail = localStorage.getItem("email")  || "";
 
   const answers = questionsArray.map(q => {
     const correctAnswer = q.type === "tf"
@@ -87,15 +159,16 @@ function saveExamResult(isTimeout) {
   });
 
   const result = {
-    id:           Date.now(),
-    timestamp:    new Date().toISOString(),
-    examType:     examType,
-    studentName:  `${firstName} ${lastName}`.trim(),
-    studentEmail: studentEmail,
-    score:        myExam.grades,
-    total:        questionsArray.length,
-    isTimeout:    isTimeout,
-    answers:      answers
+    id:             Date.now(),
+    timestamp:      new Date().toISOString(),
+    examType:       examType,
+    studentName:    `${firstName} ${lastName}`.trim(),
+    studentEmail:   studentEmail,
+    score:          myExam.grades,
+    total:          questionsArray.length,
+    isTimeout:      isTimeout,
+    violations:     violationCount,
+    answers:        answers
   };
 
   const existing = JSON.parse(localStorage.getItem("examResults") || "[]");
@@ -129,7 +202,9 @@ function showGradesPage() {
 
 // ── Timeout Page ──────────────────────────────────────────────────────────
 function showTimeoutPage() {
+  examSubmitted = true;
   saveExamResult(true);
+  exitFullscreen().catch(() => {});
 
   const firstName  = localStorage.getItem("f_name") || "Student";
   const lastName   = localStorage.getItem("l_name") || "";

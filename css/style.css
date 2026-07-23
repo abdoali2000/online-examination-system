@@ -1890,3 +1890,189 @@ body {
   background: rgba(46,204,113,0.05);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ANTI-CHEAT FULLSCREEN OVERLAYS
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Shared overlay base ── */
+.fs-gate,
+.fs-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+/* ── Fullscreen Gate (shown at exam start) ── */
+.fs-gate {
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+}
+
+.fs-gate-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  max-width: 480px;
+  width: 100%;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.fs-gate-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.fs-gate-box h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+
+.fs-gate-box p {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+}
+
+.fs-rules {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.fs-rules li {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+}
+
+.fs-gate-btn {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.fs-gate-btn:hover {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5);
+}
+
+/* ── Fullscreen Warning (shown on exit) ── */
+.fs-warning {
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.fs-warning-box {
+  background: #1a0a0a;
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.1), 0 30px 60px rgba(0, 0, 0, 0.6);
+}
+
+.fs-warning-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  animation: pulse-warn 1s infinite;
+}
+
+@keyframes pulse-warn {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+
+.fs-warning-box h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #e74c3c;
+  margin-bottom: 0.6rem;
+}
+
+.fs-warning-box p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.fs-violation-badge {
+  display: inline-block;
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  color: #e74c3c;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 1rem;
+  border-radius: 99px;
+  margin-bottom: 0.75rem;
+}
+
+.fs-violation-badge span {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.fs-warning-sub {
+  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 0.8rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.fs-return-btn {
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+}
+
+.fs-return-btn:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 480px) {
+  .fs-gate-box, .fs-warning-box {
+    padding: 2rem 1.25rem;
+  }
+  .fs-gate-box h2, .fs-warning-box h2 {
+    font-size: 1.3rem;
+  }
+}
+
+

@@ -19,9 +19,46 @@
 </head>
 
 <body>
+
+  <!-- ══ FULLSCREEN GATE — shown before exam starts ══ -->
+  <div class="fs-gate" id="fullscreenGate">
+    <div class="fs-gate-box animate__animated animate__zoomIn">
+      <div class="fs-gate-icon">🔒</div>
+      <h2>Secure Exam Mode</h2>
+      <p>
+        This exam requires <strong>Full-Screen mode</strong> to proceed.<br/>
+        Exiting full-screen during the exam will be recorded as a violation.
+      </p>
+      <ul class="fs-rules">
+        <li>🚫 Do not exit full-screen</li>
+        <li>🚫 Do not switch tabs or apps</li>
+        <li>✅ Answer all questions honestly</li>
+      </ul>
+      <button class="fs-gate-btn" id="enterFullscreenBtn">
+        🔒 Enter Fullscreen &amp; Start Exam
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ FULLSCREEN WARNING — shown when user exits fullscreen mid-exam ══ -->
+  <div class="fs-warning" id="fullscreenWarning" style="display:none">
+    <div class="fs-warning-box animate__animated animate__shakeX">
+      <div class="fs-warning-icon">⚠️</div>
+      <h2>Fullscreen Exited!</h2>
+      <p>You left fullscreen mode. This has been recorded as a <strong>violation</strong>.</p>
+      <div class="fs-violation-badge">
+        Violations: <span id="violationCountEl">0</span>
+      </div>
+      <p class="fs-warning-sub">Return to fullscreen to continue your exam.</p>
+      <button class="fs-return-btn" id="returnFullscreenBtn">
+        🔒 Return to Fullscreen
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ MAIN EXAM PAGE ══ -->
   <div class="exam-page">
 
-  
     <header class="exam-topbar">
       <span class="exam-title">Examination System</span>
 
@@ -33,9 +70,7 @@
       </div>
     </header>
 
-
     <main class="exam-body" id="examBody">
-   
     </main>
 
     <!-- FOOTER -->
