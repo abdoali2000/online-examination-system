@@ -506,10 +506,7 @@ function initResults() {
     showToast("All results cleared 🗑️");
   });
 
-  // Detail modal close
-  document.getElementById("resultDetailClose").addEventListener("click", () => {
-    document.getElementById("resultDetailOverlay").style.display = "none";
-  });
+  // Detail modal close (handled by inline onclick in HTML for resultDetailClose)
   document.getElementById("resultDetailOverlay").addEventListener("click", e => {
     if (e.target === document.getElementById("resultDetailOverlay")) {
       document.getElementById("resultDetailOverlay").style.display = "none";
