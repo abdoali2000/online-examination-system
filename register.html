@@ -40,7 +40,7 @@
                         <div class="mb-3 image">
                             <label class="form-label">Upload Profile Image</label>
                             <input type="file" id="file" onchange="validateFiles()" class="form-control p-2 p-md-3" accept="image/*">
-                            <img id="imagePreview" src="" class="img-thumbnail">
+                            <img id="imagePreview" src="" class="img-thumbnail" style="display: none; max-width: 100px; margin-top: 10px;">
                             <div class="check" id="error_file"></div>
                         </div>
 
@@ -53,6 +53,10 @@
                         <div class="mb-3">
                             <label class="form-label">Re-enter Password</label>
                             <input type="password" id="re_password" oninput="validationRePassword()" class="form-control p-2 p-md-3">
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="showPasswordToggle">
+                                <label class="form-check-label" for="showPasswordToggle" style="font-size: 14px !important; color: var(--text-muted);">Show Passwords</label>
+                            </div>
                             <div class="check" id="error_repass"></div>
                         </div>
                         <button type="submit" id="subimt" class="btn  w-100 p-2 p-md-3 fs-6 fs-md-5 fs-lg-4">Register</button>

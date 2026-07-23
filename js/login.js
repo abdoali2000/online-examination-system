@@ -45,13 +45,13 @@ function validateEmail() {
 }
 
 // validation pass
-let regexPass = /^[0-9]{6,}$/;
+let regexPass = /^.{6,}$/;
 function validatePassword() {
     const passwordVal = document.querySelector("#password").value;
      if (regexPass.test(passwordVal)) {
         valid(password, passwordError)
     } else {
-        error(password, passwordError, "Password should be numbers and at least 6 digits");
+        error(password, passwordError, "Password must be at least 6 characters");
     }
 }
 
@@ -84,7 +84,7 @@ form.addEventListener("submit", (e) => {
         isValid = false;
     }
     else if(!regexPass.test(password.value)){
-        error(password, passwordError, "Password should be numbers and at least 6 digits");
+        error(password, passwordError, "Password must be at least 6 characters");
         isValid = false;
     }  //   string in input               string
     else if (password.value !== localStorage.getItem("password")){
@@ -103,3 +103,11 @@ form.addEventListener("submit", (e) => {
     }
     
 })
+
+// Toggle password visibility
+const showPasswordToggle = document.querySelector("#showPasswordToggle");
+if (showPasswordToggle) {
+    showPasswordToggle.addEventListener("change", () => {
+        password.type = showPasswordToggle.checked ? "text" : "password";
+    });
+}

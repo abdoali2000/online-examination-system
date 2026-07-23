@@ -89,18 +89,22 @@ function validateFiles(){
         const reader = new FileReader();
         reader.onload = function(e){
             imagePreview.src = e.target.result;
+            imagePreview.style.display = "block";
         }
         reader.readAsDataURL(files)
+    } else {
+        imagePreview.src = "";
+        imagePreview.style.display = "none";
     }
 }
 // validation pass
-let regexPass = /^[0-9]{6,}$/;
+let regexPass = /^.{6,}$/;
 function validationPassword() {
     const passwordVal = document.querySelector("#password").value;
      if (regexPass.test(passwordVal)) {
         valid(password, passwordError)
     } else {
-        error(password, passwordError, "Password should be numbers and at least 6 digits");
+        error(password, passwordError, "Password must be at least 6 characters");
     }
 }
 
@@ -155,20 +159,15 @@ form.addEventListener("submit", (e) => {
         valid(email, emailError);
     }
 
-    // File
-    if (file.files.length === 0) {
-        error(file, fileError, "Please choose image");
-        isValid = false;
-    } else {
-        valid(file, fileError);
-    }
+    // File (Optional)
+    valid(file, fileError);
 
     // Password
     if (password.value.trim() === "") {
         error(password, passwordError, "Please enter the password");
         isValid = false;
     } else if (!regexPass.test(password.value)) {
-        error(password, passwordError, "Password should be numbers and at least 6 digits");
+        error(password, passwordError, "Password must be at least 6 characters");
         isValid = false;
     } else {
         valid(password, passwordError);
@@ -191,11 +190,21 @@ form.addEventListener("submit", (e) => {
         localStorage.setItem("l_name", lastName.value)
         localStorage.setItem("email", email.value)
         localStorage.setItem("password", password.value)
-        localStorage.setItem("image", imagePreview.src)
+        localStorage.setItem("image", file.files.length > 0 ? imagePreview.src : "")
         console.log(localStorage)
         setTimeout(() => {
             window.location.replace("index.html");
         }, 1500);
     }
 });
+
+// Toggle password visibility
+const showPasswordToggle = document.querySelector("#showPasswordToggle");
+if (showPasswordToggle) {
+    showPasswordToggle.addEventListener("change", () => {
+        const type = showPasswordToggle.checked ? "text" : "password";
+        password.type = type;
+        rePassword.type = type;
+    });
+}
 
