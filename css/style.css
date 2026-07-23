@@ -29,79 +29,103 @@ body {
   min-height: 100vh;
 }
 
-.register{
-    min-height: 100vh;
-    .card{
-        border: 1px solid var(--navy);
-        border-radius: 20px;
-    }
-    h3{
-        color: var(--navy-mid);
-    }
-    .image {
-        position: relative;
-    }
-    
-    #imagePreview {
-        width: 57px;
-        height: 57px;
-        object-fit: cover;
-        border-radius: 50%;
-        position: absolute;
-        top: 39%;
-        right: 20px;
-    }
-    input{
-        border: 1px solid var(--navy-mid);
-        border-radius: 15px;
-    }
-    
-    label {
-        font-size: 23px;
-    }
-    
-    .check {
-        font-size: 17px;
-        height: 10px;
-        margin-left: 10px;
-    }
-    
+/* ── Authentication Theme (Light Purple) ── */
+.theme-purple {
+  background-color: #f5f3ff !important;
 }
 
-.login{
-    .card{
-        border: 1px solid var(--navy);
-        border-radius: 20px;
-    }
-    h3{
-        color: var(--text-main);
-    }
-    input{
-        border: 1px solid var(--navy);
-        border-radius: 15px;
-    }
-    
-    label {
-        font-size: 23px;
-    }
-    
-    .check {
-        font-size: 17px;
-        height: 20px;
-        margin-left: 10px;
-    }
+.register, .login {
+    min-height: 100vh;
+    padding: 2rem 1rem;
 }
-.btn{
-    background-color: var(--navy-mid);
+
+.register .card, .login .card {
+    border: 1px solid #d8b4fe;
+    border-radius: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.1) !important;
+}
+
+.register h3, .login h3 {
+    color: #6d28d9;
+}
+
+.register input, .login input {
+    border: 1.5px solid #c4b5fd;
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.register input:focus, .login input:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.register label, .login label {
+    font-size: 1.1rem;
+    color: #4c1d95;
+    font-weight: 500;
+}
+
+.register .check, .login .check {
+    font-size: 14px;
+    color: var(--red);
+    height: 16px;
+    margin-left: 5px;
+    margin-top: 2px;
+}
+
+.register .image {
+    position: relative;
+}
+
+.register #imagePreview {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    position: absolute;
+    top: 40px;
+    right: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.register .btn, .login .btn {
+    background-color: #8b5cf6;
     color: white;
-    transition: .3s;
-    border-radius: 15px;
-    padding: 15px;
-    /* font-size: 18px; */
-    &:hover{
-        border: 1px solid var(--navy);
-        background-color: white;
-        color: var(--text-main);
+    transition: 0.3s;
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.register .btn:hover, .login .btn:hover {
+    background-color: #7c3aed;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.register a, .login a {
+    color: #8b5cf6;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.register a:hover, .login a:hover {
+    color: #6d28d9;
+    text-decoration: underline;
+}
+
+/* ── Mobile Tweaks for Auth ── */
+@media (max-width: 576px) {
+    .register .card, .login .card {
+        padding: 1.5rem !important;
+        width: 100% !important;
+    }
+    .register h3, .login h3 {
+        font-size: 1.8rem !important;
     }
 }
 
