@@ -61,6 +61,10 @@ form.addEventListener("submit", (e) => {
     // condition
     let isValid = true;
 
+    // Find user in database
+    const users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
+    const foundUser = users.find(u => u.email === email.value);
+
     //email
     if(email.value.trim() === ""){
         error(email, emailError, "Please enter the email");
@@ -70,8 +74,8 @@ form.addEventListener("submit", (e) => {
         error(email, emailError, "Please enter a valid email");
         isValid = false;
     }
-    else if(email.value !== localStorage.getItem("email")){
-        error(email, emailError, "email is not Exist");
+    else if(!foundUser){
+        error(email, emailError, "Email does not exist");
         isValid = false;
     }
     else{
@@ -86,8 +90,8 @@ form.addEventListener("submit", (e) => {
     else if(!regexPass.test(password.value)){
         error(password, passwordError, "Password must be at least 6 characters");
         isValid = false;
-    }  //   string in input               string
-    else if (password.value !== localStorage.getItem("password")){
+    }  
+    else if (foundUser && password.value !== foundUser.password){
         error(password, passwordError, "Password is not correct");
         isValid = false;
     }
@@ -97,6 +101,12 @@ form.addEventListener("submit", (e) => {
 
     // true
     if(isValid){
+        // Restore active session
+        localStorage.setItem("email", foundUser.email);
+        localStorage.setItem("password", foundUser.password);
+        localStorage.setItem("f_name", foundUser.f_name);
+        localStorage.setItem("l_name", foundUser.l_name);
+        localStorage.setItem("image", foundUser.image || "");
         setTimeout(() => {
             window.location.replace("choose.html");
         }, 1500);

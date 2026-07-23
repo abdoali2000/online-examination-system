@@ -184,12 +184,29 @@ form.addEventListener("submit", (e) => {
 
     //  true
     if (isValid) {
+        // Save to active session
         localStorage.setItem("f_name", firstName.value)
         localStorage.setItem("l_name", lastName.value)
         localStorage.setItem("email", email.value)
         localStorage.setItem("password", password.value)
         localStorage.setItem("image", file.files.length > 0 ? imagePreview.src : "")
-        console.log(localStorage)
+        
+        // Add to registered users database
+        const users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
+        const existingIndex = users.findIndex(u => u.email === email.value);
+        const newUser = {
+            f_name: firstName.value,
+            l_name: lastName.value,
+            email: email.value,
+            password: password.value,
+            image: file.files.length > 0 ? imagePreview.src : ""
+        };
+        if(existingIndex >= 0) {
+            users[existingIndex] = newUser; // Update if exists
+        } else {
+            users.push(newUser);
+        }
+        localStorage.setItem("registeredUsers", JSON.stringify(users));
         setTimeout(() => {
             window.location.replace("choose.html");
         }, 1500);
