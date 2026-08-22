@@ -155,6 +155,44 @@ form.addEventListener("submit", async (e) => {
 
     if (!isValid) return;
 
+    // ── Image Compression Helper ─────────────────────────────────────────
+    const compressImage = (imageFile, maxWidth, maxHeight, quality) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(imageFile);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+                    
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    resolve(canvas.toDataURL("image/jpeg", quality));
+                };
+                img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
+        });
+    };
+
     // ── Firebase Registration ────────────────────────────────────────────
     const submitBtn = form.querySelector("button[type='submit']");
     submitBtn.disabled    = true;
@@ -167,19 +205,31 @@ form.addEventListener("submit", async (e) => {
             email.value.trim(),
             password.value
         );
-        const uid = userCredential.user.uid;
+        const user = userCredential.user;
+        const uid = user.uid;
 
-        // 2. Save profile to Firestore users/{uid}
-        const imageData = file.files.length > 0 ? imagePreview.src : "";
-        await setDoc(doc(db, "users", uid), {
-            f_name: firstName.value.trim(),
-            l_name: lastName.value.trim(),
-            email:  email.value.trim(),
-            image:  imageData,
-            createdAt: new Date().toISOString()
-        });
+        // 2. Compress image if provided
+        let imageData = "";
+        if (file.files.length > 0) {
+            imageData = await compressImage(file.files[0], 250, 250, 0.8);
+        }
 
-        // 3. Save session info to localStorage (for fast access this session)
+        // 3. Save profile to Firestore users/{uid}
+        try {
+            await setDoc(doc(db, "users", uid), {
+                f_name: firstName.value.trim(),
+                l_name: lastName.value.trim(),
+                email:  email.value.trim(),
+                image:  imageData,
+                createdAt: new Date().toISOString()
+            });
+        } catch (firestoreErr) {
+            // Delete the auth account if Firestore write fails to prevent orphaned accounts
+            await user.delete();
+            throw firestoreErr;
+        }
+
+        // 4. Save session info to localStorage (for fast access this session)
         localStorage.setItem("uid",     uid);
         localStorage.setItem("f_name",  firstName.value.trim());
         localStorage.setItem("l_name",  lastName.value.trim());
