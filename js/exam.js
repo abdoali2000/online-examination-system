@@ -1,6 +1,6 @@
 import { Exam }     from "./examClass.js";
 import { Question } from "./examClass.js";
-import { DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
+import { auth, DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
 import {
   collection, addDoc, query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -11,12 +11,12 @@ if (!localStorage.getItem("email")) {
 }
 
 // ── Read exam type from session ─────────────────────────────────────────
-const examType  = sessionStorage.getItem("examType") || "medical";
+const examType = sessionStorage.getItem("examType") || "medical";
 const userEmail = localStorage.getItem("email");
 
 let questionsArray = [];
 let myExam;
-let examSubmitted  = false;
+let examSubmitted = false;
 let violationCount = 0;
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -24,26 +24,26 @@ let violationCount = 0;
 // ══════════════════════════════════════════════════════════════════════════
 function requestFullscreen() {
   const el = document.documentElement;
-  if (el.requestFullscreen)          return el.requestFullscreen();
-  if (el.webkitRequestFullscreen)    return el.webkitRequestFullscreen();
-  if (el.mozRequestFullScreen)       return el.mozRequestFullScreen();
-  if (el.msRequestFullscreen)        return el.msRequestFullscreen();
+  if (el.requestFullscreen) return el.requestFullscreen();
+  if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+  if (el.mozRequestFullScreen) return el.mozRequestFullScreen();
+  if (el.msRequestFullscreen) return el.msRequestFullscreen();
   return Promise.resolve();
 }
 
 function exitFullscreen() {
-  if (document.exitFullscreen)          return document.exitFullscreen();
-  if (document.webkitExitFullscreen)    return document.webkitExitFullscreen();
-  if (document.mozCancelFullScreen)     return document.mozCancelFullScreen();
-  if (document.msExitFullscreen)        return document.msExitFullscreen();
+  if (document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
+  if (document.msExitFullscreen) return document.msExitFullscreen();
   return Promise.resolve();
 }
 
 function isFullscreen() {
   return !!(
-    document.fullscreenElement       ||
+    document.fullscreenElement ||
     document.webkitFullscreenElement ||
-    document.mozFullScreenElement    ||
+    document.mozFullScreenElement ||
     document.msFullscreenElement
   );
 }
@@ -73,7 +73,7 @@ function onFullscreenChange() {
 const returnBtn = document.getElementById("returnFullscreenBtn");
 if (returnBtn) {
   returnBtn.addEventListener("click", async () => {
-    await requestFullscreen().catch(() => {});
+    await requestFullscreen().catch(() => { });
     document.getElementById("fullscreenWarning").style.display = "none";
   });
 }
@@ -82,7 +82,7 @@ if (returnBtn) {
 const enterBtn = document.getElementById("enterFullscreenBtn");
 if (enterBtn) {
   enterBtn.addEventListener("click", async () => {
-    await requestFullscreen().catch(() => {});
+    await requestFullscreen().catch(() => { });
     document.getElementById("fullscreenGate").style.display = "none";
     initExam();
   });
@@ -96,7 +96,7 @@ async function checkAlreadyDone() {
     const q = query(
       collection(db, "examResults"),
       where("studentEmail", "==", userEmail),
-      where("examType",     "==", examType)
+      where("examType", "==", examType)
     );
     const snap = await getDocs(q);
     if (!snap.empty) {
@@ -137,13 +137,13 @@ function initExam() {
   new Question(0, questionsArray, myExam).displayQuestions();
 
   const labelEl = document.getElementById("timerLabel");
-  const fillEl  = document.getElementById("timerFill");
+  const fillEl = document.getElementById("timerFill");
   myExam.startTimer(duration, labelEl, fillEl, showTimeoutPage);
 
   document.getElementById("submitBtn").addEventListener("click", () => {
     myExam.stopTimer();
     examSubmitted = true;
-    exitFullscreen().catch(() => {});
+    exitFullscreen().catch(() => { });
     showGradesPage();
   });
 }
@@ -158,8 +158,8 @@ async function saveExamResult(isTimeout) {
 
     const firstName    = localStorage.getItem("f_name") || "Student";
     const lastName     = localStorage.getItem("l_name") || "";
-    const studentEmail = localStorage.getItem("email")  || "";
-    const uid          = localStorage.getItem("uid")    || "";
+    const studentEmail = auth.currentUser?.email        || "";
+    const uid          = auth.currentUser?.uid          || "";
 
     const answers = questionsArray.map(q => {
       const correctAnswer = q.type === "tf"
@@ -167,31 +167,31 @@ async function saveExamResult(isTimeout) {
         : q.options[q.correctIndex];
       const selected = q.selectedAnswer || null;
       return {
-        questionId:     q.id,
-        questionText:   q.text,
-        questionType:   q.type,
-        options:        q.type === "mcq" ? q.options : ["True", "False"],
+        questionId: q.id,
+        questionText: q.text,
+        questionType: q.type,
+        options: q.type === "mcq" ? q.options : ["True", "False"],
         selectedAnswer: selected,
-        correctAnswer:  correctAnswer,
-        isCorrect:      selected !== null && selected === correctAnswer,
-        skipped:        selected === null || selected === undefined
+        correctAnswer: correctAnswer,
+        isCorrect: selected !== null && selected === correctAnswer,
+        skipped: selected === null || selected === undefined
       };
     });
 
     const calculatedScore = answers.filter(a => a.isCorrect).length;
 
     const result = {
-      id:           Date.now(),
-      timestamp:    new Date().toISOString(),
-      examType:     examType,
-      studentName:  `${firstName} ${lastName}`.trim(),
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      examType: examType,
+      studentName: `${firstName} ${lastName}`.trim(),
       studentEmail: studentEmail,
-      uid:          uid,
-      score:        calculatedScore,
-      total:        questionsArray.length,
-      isTimeout:    isTimeout,
-      violations:   violationCount,
-      answers:      answers
+      uid: uid,
+      score: calculatedScore,
+      total: questionsArray.length,
+      isTimeout: isTimeout,
+      violations: violationCount,
+      answers: answers
     };
 
     await addDoc(collection(db, "examResults"), result);
@@ -206,9 +206,9 @@ async function saveExamResult(isTimeout) {
 function showGradesPage() {
   saveExamResult(false);
 
-  const firstName  = localStorage.getItem("f_name") || "Student";
-  const lastName   = localStorage.getItem("l_name") || "";
-  const savedImage = localStorage.getItem("image")  || "";
+  const firstName = localStorage.getItem("f_name") || "Student";
+  const lastName = localStorage.getItem("l_name") || "";
+  const savedImage = localStorage.getItem("image") || "";
   const imgTag = savedImage
     ? `<img id="imagepreview" src="${savedImage}" alt="Profile" />`
     : "";
@@ -230,11 +230,11 @@ function showGradesPage() {
 function showTimeoutPage() {
   examSubmitted = true;
   saveExamResult(true);
-  exitFullscreen().catch(() => {});
+  exitFullscreen().catch(() => { });
 
-  const firstName  = localStorage.getItem("f_name") || "Student";
-  const lastName   = localStorage.getItem("l_name") || "";
-  const savedImage = localStorage.getItem("image")  || "";
+  const firstName = localStorage.getItem("f_name") || "Student";
+  const lastName = localStorage.getItem("l_name") || "";
+  const savedImage = localStorage.getItem("image") || "";
   const imgTag = savedImage
     ? `<img id="imagepreview" src="${savedImage}" alt="Profile" />`
     : "";

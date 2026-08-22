@@ -1,8 +1,13 @@
-import { ADMIN_EMAIL, ADMIN_PASSWORD, DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
+import { ADMIN_UID, DEFAULT_EXAM_DURATION_SECONDS, db, auth } from "./config.js";
 import { defaultQuestions } from "./questions.js";
 import {
   collection, getDocs, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ── Seed data on first visit ─────────────────────────────────────────────
 if (!localStorage.getItem("adminQuestions")) {
@@ -36,12 +41,23 @@ const adminPassErr   = document.getElementById("adminPassErr");
 const adminLoginErr  = document.getElementById("adminLoginErr");
 const adminUserLabel = document.getElementById("adminUserLabel");
 
-// Check if already logged in this session
-if (sessionStorage.getItem("adminAuth") === "true") {
-  showDashboard();
-}
+const adminLoginBtn  = document.getElementById("adminLoginBtn");
 
-adminLoginForm.addEventListener("submit", e => {
+// ── Auth state observer — single source of truth ──────────────────────────
+// Fires immediately on page load and on every auth change.
+// Only reveals the dashboard if the signed-in UID matches ADMIN_UID.
+let dashboardInitialised = false;
+onAuthStateChanged(auth, (user) => {
+  if (user && user.uid === ADMIN_UID) {
+    showDashboard(user.email);
+  } else {
+    adminLoginWrap.style.display = "";   // reset to default (visible)
+    adminDash.style.display      = "none";
+  }
+});
+
+// ── Login form submit ─────────────────────────────────────────────────────
+adminLoginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   adminEmailErr.textContent = "";
   adminPassErr.textContent  = "";
@@ -51,29 +67,62 @@ adminLoginForm.addEventListener("submit", e => {
   const pass  = adminPassEl.value;
   let valid   = true;
 
-  if (!email) { adminEmailErr.textContent = "Email is required."; valid = false; }
+  if (!email) { adminEmailErr.textContent = "Email is required.";    valid = false; }
   if (!pass)  { adminPassErr.textContent  = "Password is required."; valid = false; }
   if (!valid) return;
 
-  if (email === ADMIN_EMAIL && pass === ADMIN_PASSWORD) {
-    sessionStorage.setItem("adminAuth", "true");
-    showDashboard();
-  } else {
-    adminLoginErr.textContent = "Invalid email or password.";
-    adminPassEl.value = "";
+  adminLoginBtn.disabled    = true;
+  adminLoginBtn.textContent = "Logging in…";
+
+  try {
+    const credential = await signInWithEmailAndPassword(auth, email, pass);
+
+    // Extra guard: confirm the account is the designated admin
+    if (credential.user.uid !== ADMIN_UID) {
+      await signOut(auth);
+      adminLoginErr.textContent = "Access denied. This account is not authorised as admin.";
+      adminLoginBtn.disabled    = false;
+      adminLoginBtn.textContent = "Login";
+      return;
+    }
+    // onAuthStateChanged fires → showDashboard() is called automatically
+
+  } catch (err) {
+    adminLoginBtn.disabled    = false;
+    adminLoginBtn.textContent = "Login";
+
+    if (
+      err.code === "auth/user-not-found"     ||
+      err.code === "auth/invalid-credential" ||
+      err.code === "auth/invalid-email"
+    ) {
+      adminEmailErr.textContent = "No account found with this email.";
+    } else if (err.code === "auth/wrong-password") {
+      adminPassErr.textContent = "Incorrect password.";
+    } else if (err.code === "auth/too-many-requests") {
+      adminLoginErr.textContent = "Too many failed attempts. Please try again later.";
+    } else {
+      adminLoginErr.textContent = `Login failed: ${err.message}`;
+    }
+    console.error("[admin] signIn error:", err);
   }
 });
 
-function showDashboard() {
+function showDashboard(email) {
   adminLoginWrap.style.display = "none";
   adminDash.style.display      = "flex";
-  adminUserLabel.textContent   = ADMIN_EMAIL;
-  initDashboard();
+  adminUserLabel.textContent   = email || "Admin";
+  if (!dashboardInitialised) {
+    dashboardInitialised = true;
+    initDashboard();
+  }
 }
 
-document.getElementById("adminLogoutBtn").addEventListener("click", () => {
-  sessionStorage.removeItem("adminAuth");
-  location.reload();
+// ── Logout ────────────────────────────────────────────────────────────────
+document.getElementById("adminLogoutBtn").addEventListener("click", async () => {
+  dashboardInitialised = false;
+  await signOut(auth);
+  // onAuthStateChanged fires → hides dashboard and shows login automatically
 });
 
 // ══════════════════════════════════════════════════════════════════════════

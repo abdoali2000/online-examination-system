@@ -1,15 +1,4 @@
 // ============================================================
-//  Admin Configuration
-//  Change credentials and settings here or via Admin Dashboard
-// ============================================================
-
-export const ADMIN_EMAIL    = "admin@bioexam.com";
-export const ADMIN_PASSWORD = "Bio@Admin2025";
-
-// Default exam duration in seconds (2700 = 45 minutes)
-export const DEFAULT_EXAM_DURATION_SECONDS = 2700;
-
-// ============================================================
 //  Firebase Configuration & Initialization
 // ============================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -30,3 +19,16 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
+
+// ============================================================
+//  Admin Configuration
+// ============================================================
+
+// The Firebase Auth UID of the administrator account.
+// Used to enforce admin-only access in Firestore Security Rules
+// and in the client-side auth state guard.
+export const ADMIN_UID = "Fq2RWyerWiYWzuLIzUJeLyjYx102";
+
+// Default exam duration in seconds (2700 = 45 minutes)
+export const DEFAULT_EXAM_DURATION_SECONDS = 2700;
+

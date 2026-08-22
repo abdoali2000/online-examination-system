@@ -1,0 +1,89 @@
+rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════
+//  Bio-NL Exam System — Firestore Security Rules
+//
+//  Role model:
+//    Admin  → Firebase Auth UID = "Fq2RWyerWiYWzuLIzUJeLyjYx102"
+//    Student → any other authenticated user
+//
+//  All client SDK calls come from the browser (no Admin SDK / Cloud
+//  Functions), so every rule must be enforced here.
+// ════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ─────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+          && request.auth.uid == "Fq2RWyerWiYWzuLIzUJeLyjYx102";
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── users/{uid} ──────────────────────────────────────────────────
+    //  • Students can create and read/update their own profile only.
+    //  • Admin can read any profile.
+    //  • Nobody (including admin) can delete a user document from the
+    //    client; deletion is a backend concern.
+    match /users/{uid} {
+
+      // Student registers → writes their own document
+      allow create: if isOwner(uid)
+                    && request.resource.data.keys().hasAll(["f_name", "l_name", "email"])
+                    && request.resource.data.email == request.auth.token.email;
+
+      // Student reads/updates their own profile; admin reads any
+      allow read:   if isOwner(uid) || isAdmin();
+      allow update: if isOwner(uid);
+
+      // No client-side deletes
+      allow delete: if false;
+    }
+
+    // ── examResults/{resultId} ────────────────────────────────────────
+    //  • Students can CREATE a result only when:
+    //      1. They are authenticated.
+    //      2. The uid field in the document matches their own UID.
+    //      3. The studentEmail field matches their verified token email.
+    //      (Prevents a student from submitting on behalf of someone else.)
+    //  • Students can READ only their own results (for the duplicate-
+    //    submission check in exam.js).
+    //  • Admin can READ and DELETE all results (for the dashboard).
+    //  • No client-side updates — results are immutable once submitted.
+    match /examResults/{resultId} {
+
+      allow create: if isSignedIn()
+                    && request.resource.data.uid          == request.auth.uid
+                    && request.resource.data.studentEmail == request.auth.token.email
+                    && request.resource.data.keys().hasAll([
+                         "uid", "studentEmail", "studentName",
+                         "examType", "score", "total", "answers",
+                         "timestamp", "isTimeout", "violations"
+                       ]);
+
+      // Student reads own results; admin reads everything
+      allow read:   if isAdmin()
+                    || (isSignedIn()
+                        && resource.data.uid == request.auth.uid);
+
+      // Only admin can delete (Clear All Results button)
+      allow delete: if isAdmin();
+
+      // Results are immutable — no updates allowed
+      allow update: if false;
+    }
+
+    // ── Deny everything else ──────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
