@@ -6,7 +6,7 @@ import {
 
 // ── Auth guard ──────────────────────────────────────────────────────────
 if (!localStorage.getItem("email")) {
-  window.location.replace("index.html");
+  window.location.replace("login.html");
 }
 
 // ── Seed questions/duration into localStorage if first time ─────────────
@@ -100,5 +100,5 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
   localStorage.removeItem("password");
   localStorage.removeItem("image");
   sessionStorage.clear();
-  window.location.replace("index.html");
+  window.location.replace("login.html");
 });

@@ -2,50 +2,198 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <title>Login</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bio NL Pharmaceuticals — Exams System</title>
+    <meta name="description" content="Bio NL Pharmaceuticals Company online examination system. Start your medical or soft-skills exam here." />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+        /* ── Home Page Styles ───────────────────────────────────────────── */
+        .home-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--gradient-bg);
+            position: relative;
+            overflow: hidden;
+            padding: 2rem 1rem;
+        }
+
+        /* Subtle radial glow blobs */
+        .home-page::before,
+        .home-page::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.25;
+            pointer-events: none;
+        }
+        .home-page::before {
+            width: 500px;
+            height: 500px;
+            background: #ff6bb5;
+            top: -120px;
+            left: -120px;
+        }
+        .home-page::after {
+            width: 400px;
+            height: 400px;
+            background: #b44aff;
+            bottom: -100px;
+            right: -100px;
+        }
+
+        .home-card {
+            position: relative;
+            z-index: 1;
+            background: #ffffff;
+            border: none;
+            border-radius: 28px;
+            padding: 3.5rem 3rem;
+            text-align: center;
+            max-width: 460px;
+            width: 100%;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+            animation: fadeSlideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(32px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .home-logo {
+            width: 130px;
+            height: 130px;
+            object-fit: contain;
+            margin-bottom: 1.5rem;
+            animation: logoPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+        }
+
+        @keyframes logoPop {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .home-card h1 {
+            font-size: clamp(1.35rem, 4vw, 1.75rem);
+            font-weight: 700;
+            color: var(--primary-color);
+            letter-spacing: -0.3px;
+            margin-bottom: 0.4rem;
+            line-height: 1.25;
+        }
+
+        .home-card h2 {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            font-weight: 500;
+            color: var(--secondary-color);
+            margin-bottom: 2.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--gradient-bg);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            padding: 0.85rem 2.8rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Sora', sans-serif;
+            cursor: pointer;
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+            box-shadow: 0 6px 20px rgba(194, 26, 101, 0.35);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary-home:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 14px 36px rgba(194, 26, 101, 0.45);
+        }
+
+        .btn-primary-home:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-primary-home:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-arrow {
+            font-size: 1.2rem;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-primary-home:hover:not(:disabled) .btn-arrow {
+            transform: translateX(4px);
+        }
+
+        .home-footer {
+            position: relative;
+            z-index: 1;
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.3px;
+        }
+
+        @media (max-width: 480px) {
+            .home-card { padding: 2.5rem 1.5rem; }
+        }
+
+        .admin-link-home {
+            position: relative;
+            z-index: 1;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
+            letter-spacing: 0.3px;
+            transition: color 0.2s ease;
+        }
+        .admin-link-home:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
 </head>
 
-<body class="theme-purple">
+<body>
 
-    <div class="login container d-flex justify-content-center align-items-center vh-100">
+    <div class="home-page">
 
-        <div class="card p-4 shadow " style="width:90%">
+        <div class="home-card">
+            <!-- Logo -->
+            <img
+                src="./assets/images/logo.png"
+                alt="Bio NL Pharmaceuticals Logo"
+                class="home-logo"
+            />
 
-            <h3 class="text-center mb-4 fw-bold fs-1">Login</h3>
+            <!-- Headings -->
+            <h1>Bio NL Pharmaceuticals Company</h1>
+            <h2>Exams System</h2>
 
-            <form id="loginForm">
-                <div class="mb-3">
-                    <label class="form-label">Email</label>
-                    <input type="email" oninput="validateEmail()" id="email" class="form-control p-3" placeholder="Enter email">
-                    <div class="check" id="error_email"></div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" oninput="validatePassword()" id="password" class="form-control p-3" placeholder="Enter password">
-                    <div class="form-check mt-1">
-                        <input class="form-check-input" type="checkbox" id="showPasswordToggle">
-                        <label class="form-check-label" for="showPasswordToggle" style="font-size: 14px !important; color: var(--text-muted);">Show Password</label>
-                    </div>
-                    <div class="check" id="error_pass"></div>
-                </div>
-                <button type="submit" id="subimt" class="btn btn-primary w-100 my-1">Login</button>
-                <hr>
-                <p class="text-center my-3">
-                    Don't have an account? <a href="register.html">Register</a>
-                </p>
-                <div class="text-center" style="margin-top: 2rem;">
-                    <a href="admin.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">⚙️ Admin Dashboard</a>
-                </div>
-            </form>
+            <!-- CTA -->
+            <button id="startBtn" class="btn-primary-home">
+                Start <span class="btn-arrow">→</span>
+            </button>
         </div>
+
+        <p class="home-footer">© 2026 Bio NL Pharmaceuticals · All rights reserved</p>
+        <a href="admin.html" class="admin-link-home">⚙️ Admin Dashboard</a>
+
     </div>
 
-    <script type="module" src="js/login.js"></script>
+    <script type="module" src="js/home.js"></script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-import { Exam }     from "./examClass.js";
+import { Exam } from "./examClass.js";
 import { Question } from "./examClass.js";
 import { auth, DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
 import {
@@ -7,7 +7,7 @@ import {
 
 // ── Auth guard ──────────────────────────────────────────────────────────
 if (!localStorage.getItem("email")) {
-  window.location.replace("index.html");
+  window.location.replace("login.html");
 }
 
 // ── Read exam type from session ─────────────────────────────────────────
@@ -156,10 +156,10 @@ async function saveExamResult(isTimeout) {
       return;
     }
 
-    const firstName    = localStorage.getItem("f_name") || "Student";
-    const lastName     = localStorage.getItem("l_name") || "";
-    const studentEmail = auth.currentUser?.email        || "";
-    const uid          = auth.currentUser?.uid          || "";
+    const firstName = localStorage.getItem("f_name") || "Student";
+    const lastName = localStorage.getItem("l_name") || "";
+    const studentEmail = auth.currentUser?.email || "";
+    const uid = auth.currentUser?.uid || "";
 
     const answers = questionsArray.map(q => {
       const correctAnswer = q.type === "tf"
