@@ -156,40 +156,69 @@ form.addEventListener("submit", async (e) => {
     if (!isValid) return;
 
     // ── Image Compression Helper ─────────────────────────────────────────
+    // Returns a compressed JPEG Data URL, or "" if no valid image is given.
     const compressImage = (imageFile, maxWidth, maxHeight, quality) => {
         return new Promise((resolve, reject) => {
+            // Guard 1: no file passed in at all → skip compression
+            if (!imageFile) {
+                resolve("");
+                return;
+            }
+            // Guard 2: file is not an image MIME type → skip compression
+            if (!imageFile.type.startsWith("image/")) {
+                reject(new Error(`Selected file is not an image (type: ${imageFile.type}).`));
+                return;
+            }
+
             const reader = new FileReader();
             reader.readAsDataURL(imageFile);
-            reader.onload = (event) => {
+
+            reader.onload = () => {
+                // Use reader.result directly (safer than event.target.result)
+                const dataUrl = reader.result;
+                if (!dataUrl || typeof dataUrl !== "string") {
+                    reject(new Error("FileReader returned an empty or invalid result."));
+                    return;
+                }
+
                 const img = new Image();
-                img.src = event.target.result;
                 img.onload = () => {
-                    let width = img.width;
+                    let width  = img.width;
                     let height = img.height;
-                    
+
+                    // Guard 3: image has no dimensions (corrupt / unsupported)
+                    if (!width || !height) {
+                        reject(new Error("Image has invalid dimensions (0×0)."));
+                        return;
+                    }
+
+                    // Scale down while keeping aspect ratio
                     if (width > height) {
                         if (width > maxWidth) {
                             height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
+                            width  = maxWidth;
                         }
                     } else {
                         if (height > maxHeight) {
-                            width = Math.round((width * maxHeight) / height);
+                            width  = Math.round((width * maxHeight) / height);
                             height = maxHeight;
                         }
                     }
-                    
+
                     const canvas = document.createElement("canvas");
-                    canvas.width = width;
+                    canvas.width  = width;
                     canvas.height = height;
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0, width, height);
-                    
+
                     resolve(canvas.toDataURL("image/jpeg", quality));
                 };
-                img.onerror = (error) => reject(error);
+
+                img.onerror = () => reject(new Error("Browser could not decode the selected image."));
+                img.src = dataUrl;
             };
-            reader.onerror = (error) => reject(error);
+
+            reader.onerror = () => reject(new Error("Failed to read the selected image file."));
         });
     };
 
@@ -198,6 +227,8 @@ form.addEventListener("submit", async (e) => {
     submitBtn.disabled    = true;
     submitBtn.textContent = "Registering...";
 
+    let registeredUser = null; // track for rollback
+
     try {
         // 1. Create user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(
@@ -205,36 +236,35 @@ form.addEventListener("submit", async (e) => {
             email.value.trim(),
             password.value
         );
-        const user = userCredential.user;
-        const uid = user.uid;
+        registeredUser = userCredential.user;
+        const uid = registeredUser.uid;
 
-        // 2. Compress image if provided
+        // 2. Compress image if provided — guarded: skip if no file or invalid type
+        //    (runs AFTER auth so that if it throws, we can rollback the auth account)
         let imageData = "";
-        if (file.files.length > 0) {
-            imageData = await compressImage(file.files[0], 250, 250, 0.8);
+        const selectedFile = file.files[0]; // undefined when no file chosen
+        if (selectedFile && selectedFile.type.startsWith("image/")) {
+            imageData = await compressImage(selectedFile, 250, 250, 0.8);
         }
+
 
         // 3. Save profile to Firestore users/{uid}
-        try {
-            await setDoc(doc(db, "users", uid), {
-                f_name: firstName.value.trim(),
-                l_name: lastName.value.trim(),
-                email:  email.value.trim(),
-                image:  imageData,
-                createdAt: new Date().toISOString()
-            });
-        } catch (firestoreErr) {
-            // Delete the auth account if Firestore write fails to prevent orphaned accounts
-            await user.delete();
-            throw firestoreErr;
-        }
+        //    email MUST equal auth.currentUser.email (enforced by Firestore rules),
+        //    so we read it from the auth token, not from the input field.
+        await setDoc(doc(db, "users", uid), {
+            f_name: firstName.value.trim(),
+            l_name: lastName.value.trim(),
+            email:  registeredUser.email,   // ← auth token email, satisfies Firestore rule
+            image:  imageData,
+            createdAt: new Date().toISOString()
+        });
 
         // 4. Save session info to localStorage (for fast access this session)
-        localStorage.setItem("uid",     uid);
-        localStorage.setItem("f_name",  firstName.value.trim());
-        localStorage.setItem("l_name",  lastName.value.trim());
-        localStorage.setItem("email",   email.value.trim());
-        localStorage.setItem("image",   imageData);
+        localStorage.setItem("uid",    uid);
+        localStorage.setItem("f_name", firstName.value.trim());
+        localStorage.setItem("l_name", lastName.value.trim());
+        localStorage.setItem("email",  registeredUser.email);
+        localStorage.setItem("image",  imageData);
 
         submitBtn.textContent = "✅ Registered!";
         setTimeout(() => {
@@ -242,22 +272,32 @@ form.addEventListener("submit", async (e) => {
         }, 1000);
 
     } catch (err) {
+        // Rollback: delete the auth account if it was created but something
+        // after it (image compression or Firestore write) failed.
+        if (registeredUser) {
+            try { await registeredUser.delete(); } catch (_) { /* best-effort */ }
+        }
+
         submitBtn.disabled    = false;
         submitBtn.textContent = "Register";
 
+        // Safe message extraction — err may be a Firebase Error, a plain JS Error,
+        // or a raw DOM Event (no .message). Use optional chaining + fallback.
+        const friendlyMsg = err?.message || "An unknown error occurred. Please try again.";
+
         // Map Firebase error codes to friendly messages
-        if (err.code === "auth/email-already-in-use") {
+        if (err?.code === "auth/email-already-in-use") {
             error(email, emailError, "This email is already registered. Please login.");
-        } else if (err.code === "auth/invalid-email") {
+        } else if (err?.code === "auth/invalid-email") {
             error(email, emailError, "Invalid email format.");
-        } else if (err.code === "auth/weak-password") {
+        } else if (err?.code === "auth/weak-password") {
             error(password, passwordError, "Password is too weak (min 6 characters).");
         } else {
-            emailError.innerHTML  = "";
-            passwordError.innerHTML = `Registration failed: ${err.message}`;
+            emailError.innerHTML    = "";
+            passwordError.innerHTML = `Registration failed: ${friendlyMsg}`;
             passwordError.style.color = "red";
         }
-        console.error("[register] Firebase error:", err);
+        console.error("[register] Registration error:", err);
     }
 });
 
