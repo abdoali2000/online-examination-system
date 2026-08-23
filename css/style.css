@@ -2157,6 +2157,201 @@ body {
   .modal-close {
     position: absolute;
     top: 1rem;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+}
+
+.fs-gate-btn {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.fs-gate-btn:hover {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5);
+}
+
+/* ── Fullscreen Warning (shown on exit) ── */
+.fs-warning {
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.fs-warning-box {
+  background: #1a0a0a;
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.1), 0 30px 60px rgba(0, 0, 0, 0.6);
+}
+
+.fs-warning-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  animation: pulse-warn 1s infinite;
+}
+
+@keyframes pulse-warn {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+
+.fs-warning-box h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #e74c3c;
+  margin-bottom: 0.6rem;
+}
+
+.fs-warning-box p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.fs-violation-badge {
+  display: inline-block;
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  color: #e74c3c;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 1rem;
+  border-radius: 99px;
+  margin-bottom: 0.75rem;
+}
+
+.fs-violation-badge span {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.fs-warning-sub {
+  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 0.8rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.fs-return-btn {
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+}
+
+.fs-return-btn:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 768px) {
+  /* Existing full-screen warnings */
+  .fs-gate-box, .fs-warning-box {
+    padding: 2rem 1.25rem;
+  }
+  .fs-gate-box h2, .fs-warning-box h2 {
+    font-size: 1.3rem;
+  }
+
+  /* Admin Dashboard Layout */
+  .admin-layout {
+    flex-direction: column;
+  }
+  
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 1rem;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem;
+  }
+
+  .admin-nav-btn {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .admin-content {
+    padding: 1rem;
+  }
+  
+  .admin-topbar {
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .admin-topbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-form-row.two-col {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .admin-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Modals */
+  .admin-modal {
+    width: 95%;
+    max-width: 100%;
+    padding: 1.5rem 1rem;
+  }
+
+  .admin-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 1rem;
     right: 1rem;
   }
 
@@ -2166,4 +2361,140 @@ body {
     -webkit-overflow-scrolling: touch;
     width: 100%;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CREATE EXAM TAB
+═══════════════════════════════════════════════════════════════ */
+
+/* Override max-width for create exam cards — they need more room */
+#createExamTab .admin-settings-card {
+  max-width: 100%;
+}
+
+/* ── Metadata grid ── */
+.create-exam-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 180px;
+  gap: 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .create-exam-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Section sub-header (title + action button in one row) ── */
+.create-exam-qb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.create-exam-qb-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  margin: 0;
+}
+
+/* ── Question list container ── */
+.exam-questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Empty state text */
+.exam-qs-empty {
+  color: rgba(255,255,255,0.35);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1.5rem 0;
+  margin: 0;
+}
+
+/* ── Individual draft question card ── */
+.exam-q-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.exam-q-card:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+
+/* Card header row: question number + type select + remove btn */
+.eq-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.eq-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.07);
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+}
+
+/* ── Saved exams list ── */
+.admin-exams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.saved-exam-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.2s;
+  flex-wrap: wrap;
+}
+
+.saved-exam-card:hover {
+  border-color: rgba(255,255,255,0.17);
+}
+
+.saved-exam-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.saved-exam-title {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-exam-meta {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.saved-exam-actions {
+  flex-shrink: 0;
 }

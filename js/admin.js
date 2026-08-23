@@ -1,7 +1,7 @@
 import { ADMIN_UID, DEFAULT_EXAM_DURATION_SECONDS, db, auth } from "./config.js";
 import { defaultQuestions } from "./questions.js";
 import {
-  collection, getDocs, deleteDoc, doc
+  collection, getDocs, deleteDoc, doc, addDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -136,6 +136,7 @@ function initDashboard() {
   initExport();
   initResetDefault();
   initResults();
+  initCreateExam();
 }
 
 // ── Tab Navigation ────────────────────────────────────────────────────────
@@ -742,3 +743,387 @@ function openResultDetail(id) {
   document.getElementById("resultDetailOverlay").style.display = "flex";
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+//  CREATE EXAM TAB
+// ══════════════════════════════════════════════════════════════════════════
+// In-memory list of questions being built for the new exam
+let _examDraftQuestions = [];
+let _examDraftCounter  = 0;   // monotonic counter for unique question IDs
+
+function initCreateExam() {
+  // ── "Add Question" button ────────────────────────────────────────────
+  document.getElementById("addExamQuestionBtn").addEventListener("click", () => {
+    addDraftQuestion();
+  });
+
+  // ── "Save Exam" button ───────────────────────────────────────────────
+  document.getElementById("saveExamBtn").addEventListener("click", saveExamToFirestore);
+
+  // ── "Clear Form" button ──────────────────────────────────────────────
+  document.getElementById("clearExamFormBtn").addEventListener("click", clearExamForm);
+
+  // ── "Refresh" saved exams ────────────────────────────────────────────
+  document.getElementById("refreshExamsBtn").addEventListener("click", () => {
+    loadSavedExams();
+  });
+
+  // ── Also reload saved exams when the tab is opened ───────────────────
+  document.getElementById("navCreateExam").addEventListener("click", () => {
+    loadSavedExams();
+  });
+
+  // Initial load
+  loadSavedExams();
+}
+
+// ── Draft question management ─────────────────────────────────────────────
+function addDraftQuestion(prefill = null) {
+  const qid  = ++_examDraftCounter;
+  const type = prefill?.type ?? "mcq";   // default to MCQ
+
+  const entry = { qid, type, text: prefill?.text ?? "", options: prefill?.options ?? ["", "", "", ""], correctIndex: prefill?.correctIndex ?? 0, correct: prefill?.correct ?? true };
+  _examDraftQuestions.push(entry);
+  renderDraftQuestions();
+  // Scroll new card into view
+  setTimeout(() => {
+    const card = document.querySelector(`[data-qid="${qid}"]`);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, 50);
+}
+
+function removeDraftQuestion(qid) {
+  _examDraftQuestions = _examDraftQuestions.filter(q => q.qid !== qid);
+  renderDraftQuestions();
+}
+
+function renderDraftQuestions() {
+  const container = document.getElementById("examQuestionsList");
+  const empty     = document.getElementById("examQsEmpty");
+
+  if (_examDraftQuestions.length === 0) {
+    empty.style.display = "block";
+    // Remove all cards except the empty placeholder
+    container.querySelectorAll(".exam-q-card").forEach(c => c.remove());
+    return;
+  }
+
+  empty.style.display = "none";
+
+  // Remove cards for deleted questions, keep existing ones (avoid full re-render so inputs stay focused)
+  const existingQids = new Set([..._examDraftQuestions.map(q => q.qid)]);
+  container.querySelectorAll(".exam-q-card").forEach(card => {
+    const qid = parseInt(card.dataset.qid, 10);
+    if (!existingQids.has(qid)) card.remove();
+  });
+
+  _examDraftQuestions.forEach((entry, idx) => {
+    const existing = container.querySelector(`[data-qid="${entry.qid}"]`);
+    if (existing) {
+      // Just update the question number badge if it exists
+      const numEl = existing.querySelector(".eq-num");
+      if (numEl) numEl.textContent = `Q${idx + 1}`;
+      return;
+    }
+
+    // Build a new card
+    const card = document.createElement("div");
+    card.className   = "exam-q-card";
+    card.dataset.qid = entry.qid;
+
+    const isMcq = entry.type === "mcq";
+
+    card.innerHTML = `
+      <div class="eq-header">
+        <span class="eq-num">Q${idx + 1}</span>
+        <select class="admin-select eq-type-select" data-qid="${entry.qid}">
+          <option value="mcq" ${!isMcq ? "" : "selected"}>MCQ (4 options)</option>
+          <option value="tf"  ${isMcq ? "" : "selected"}>True / False</option>
+        </select>
+        <button class="tbl-btn del-btn eq-remove-btn" data-qid="${entry.qid}" title="Remove question">🗑️</button>
+      </div>
+
+      <div class="admin-field" style="margin-top:.75rem">
+        <textarea class="admin-textarea eq-text" rows="2" placeholder="Enter question text…" data-qid="${entry.qid}">${escHtml(entry.text)}</textarea>
+      </div>
+
+      ${isMcq ? buildMcqBlock(entry) : buildTfBlock(entry)}
+    `;
+
+    container.appendChild(card);
+
+    // ── Listeners ────────────────────────────────────────────────────
+    card.querySelector(".eq-remove-btn").addEventListener("click", () => removeDraftQuestion(entry.qid));
+
+    card.querySelector(".eq-type-select").addEventListener("change", function () {
+      const newType = this.value;
+      const q = _examDraftQuestions.find(q => q.qid === entry.qid);
+      if (q) {
+        q.type = newType;
+        // Flush text before re-rendering
+        const ta = card.querySelector(".eq-text");
+        if (ta) q.text = ta.value;
+        // Replace answer block only
+        const answerBlock = card.querySelector(".eq-answer-block");
+        if (answerBlock) {
+          answerBlock.outerHTML = newType === "mcq" ? buildMcqBlock(q) : buildTfBlock(q);
+        }
+        attachAnswerListeners(card, q);
+      }
+    });
+
+    attachAnswerListeners(card, entry);
+  });
+}
+
+function buildMcqBlock(entry) {
+  const opts = entry.options.length === 4 ? entry.options : ["", "", "", ""];
+  return `
+    <div class="eq-answer-block mcq-options-list" style="margin-top:.75rem">
+      ${opts.map((opt, i) => `
+        <div class="mcq-option-row">
+          <span class="mcq-label">${String.fromCharCode(65 + i)}</span>
+          <input type="text" class="admin-input mcq-opt-input eq-opt" data-idx="${i}" data-qid="${entry.qid}" value="${escHtml(opt)}" placeholder="Option ${String.fromCharCode(65 + i)}" />
+          <label class="admin-radio correct-radio">
+            <input type="radio" name="eq-correct-${entry.qid}" value="${i}" ${i === entry.correctIndex ? "checked" : ""} /> Correct
+          </label>
+        </div>`).join("")}
+    </div>`;
+}
+
+function buildTfBlock(entry) {
+  return `
+    <div class="eq-answer-block admin-radio-row" style="margin-top:.75rem">
+      <label class="admin-radio">
+        <input type="radio" name="eq-tf-${entry.qid}" value="true"  ${entry.correct !== false ? "checked" : ""} /> True
+      </label>
+      <label class="admin-radio">
+        <input type="radio" name="eq-tf-${entry.qid}" value="false" ${entry.correct === false ? "checked" : ""} /> False
+      </label>
+    </div>`;
+}
+
+function attachAnswerListeners(card, entry) {
+  // MCQ option text inputs
+  card.querySelectorAll(".eq-opt").forEach(input => {
+    input.addEventListener("input", () => {
+      const q = _examDraftQuestions.find(q => q.qid === entry.qid);
+      if (!q) return;
+      const idx = parseInt(input.dataset.idx, 10);
+      if (!q.options) q.options = ["", "", "", ""];
+      q.options[idx] = input.value;
+    });
+  });
+
+  // MCQ correct radio
+  card.querySelectorAll(`input[name="eq-correct-${entry.qid}"]`).forEach(radio => {
+    radio.addEventListener("change", () => {
+      const q = _examDraftQuestions.find(q => q.qid === entry.qid);
+      if (q) q.correctIndex = parseInt(radio.value, 10);
+    });
+  });
+
+  // T/F radios
+  card.querySelectorAll(`input[name="eq-tf-${entry.qid}"]`).forEach(radio => {
+    radio.addEventListener("change", () => {
+      const q = _examDraftQuestions.find(q => q.qid === entry.qid);
+      if (q) q.correct = radio.value === "true";
+    });
+  });
+
+  // Question text textarea
+  const ta = card.querySelector(".eq-text");
+  if (ta) {
+    ta.addEventListener("input", () => {
+      const q = _examDraftQuestions.find(q => q.qid === entry.qid);
+      if (q) q.text = ta.value;
+    });
+  }
+}
+
+// ── Flush all draft question text fields before saving ─────────────────────
+function flushDraftTextFields() {
+  _examDraftQuestions.forEach(entry => {
+    const card = document.querySelector(`[data-qid="${entry.qid}"]`);
+    if (!card) return;
+    const ta = card.querySelector(".eq-text");
+    if (ta) entry.text = ta.value;
+    if (entry.type === "mcq") {
+      card.querySelectorAll(".eq-opt").forEach(input => {
+        const idx = parseInt(input.dataset.idx, 10);
+        if (!entry.options) entry.options = ["", "", "", ""];
+        entry.options[idx] = input.value;
+      });
+    }
+  });
+}
+
+// ── Save exam to Firestore ─────────────────────────────────────────────────
+async function saveExamToFirestore() {
+  const feedback   = document.getElementById("createExamFeedback");
+  const titleEl    = document.getElementById("examTitle");
+  const subjectEl  = document.getElementById("examSubject");
+  const durationEl = document.getElementById("examDurationMin");
+  const titleErr   = document.getElementById("examTitleErr");
+  const subjectErr = document.getElementById("examSubjectErr");
+  const durationErr= document.getElementById("examDurationErr");
+
+  // Reset errors
+  titleErr.textContent = subjectErr.textContent = durationErr.textContent = "";
+  feedback.textContent = "";
+  feedback.className   = "setting-feedback";
+
+  // Flush live textarea values into _examDraftQuestions
+  flushDraftTextFields();
+
+  // ── Validate metadata ────────────────────────────────────────────────
+  let valid = true;
+  const title    = titleEl.value.trim();
+  const subject  = subjectEl.value.trim();
+  const duration = parseInt(durationEl.value, 10);
+
+  if (!title)                                  { titleErr.textContent    = "Title is required.";                  valid = false; }
+  if (!subject)                                { subjectErr.textContent  = "Subject / Category is required.";    valid = false; }
+  if (isNaN(duration) || duration < 1 || duration > 360) { durationErr.textContent = "Duration must be 1–360 minutes."; valid = false; }
+
+  // ── Validate questions ────────────────────────────────────────────────
+  if (_examDraftQuestions.length === 0) {
+    feedback.textContent = "⚠️ Add at least one question before saving.";
+    feedback.className   = "setting-feedback error";
+    return;
+  }
+
+  for (let i = 0; i < _examDraftQuestions.length; i++) {
+    const q = _examDraftQuestions[i];
+    if (!q.text.trim()) {
+      feedback.textContent = `⚠️ Q${i + 1} has no question text.`;
+      feedback.className   = "setting-feedback error";
+      valid = false;
+      break;
+    }
+    if (q.type === "mcq") {
+      const opts = q.options || [];
+      if (opts.length !== 4 || opts.some(o => !o.trim())) {
+        feedback.textContent = `⚠️ Q${i + 1}: all 4 MCQ options must be filled.`;
+        feedback.className   = "setting-feedback error";
+        valid = false;
+        break;
+      }
+    }
+  }
+
+  if (!valid) return;
+
+  // ── Build Firestore payload ───────────────────────────────────────────
+  const saveBtn = document.getElementById("saveExamBtn");
+  saveBtn.disabled    = true;
+  saveBtn.textContent = "Saving…";
+
+  const questionsPayload = _examDraftQuestions.map((q, i) => {
+    const base = { id: i + 1, type: q.type, text: q.text.trim() };
+    if (q.type === "tf") {
+      return { ...base, correct: q.correct };
+    } else {
+      return { ...base, options: q.options.map(o => o.trim()), correctIndex: q.correctIndex };
+    }
+  });
+
+  const payload = {
+    title,
+    subject,
+    durationSeconds: duration * 60,
+    questions: questionsPayload,
+    createdAt: Date.now(),
+  };
+
+  try {
+    await addDoc(collection(db, "exams"), payload);
+    feedback.textContent = `✅ Exam "${title}" saved successfully with ${questionsPayload.length} question(s).`;
+    feedback.className   = "setting-feedback success";
+    showToast(`Exam "${title}" saved! ✅`);
+    clearExamForm();
+    loadSavedExams();
+  } catch (err) {
+    console.error("[admin] saveExam error:", err);
+    feedback.textContent = `❌ Failed to save exam: ${err.message}`;
+    feedback.className   = "setting-feedback error";
+  } finally {
+    saveBtn.disabled    = false;
+    saveBtn.textContent = "💾 Save Exam to Firestore";
+  }
+}
+
+// ── Clear exam draft form ─────────────────────────────────────────────────
+function clearExamForm() {
+  document.getElementById("examTitle").value       = "";
+  document.getElementById("examSubject").value     = "";
+  document.getElementById("examDurationMin").value = "45";
+  document.getElementById("examTitleErr").textContent    = "";
+  document.getElementById("examSubjectErr").textContent  = "";
+  document.getElementById("examDurationErr").textContent = "";
+  _examDraftQuestions = [];
+  _examDraftCounter   = 0;
+  document.getElementById("examQuestionsList").querySelectorAll(".exam-q-card").forEach(c => c.remove());
+  document.getElementById("examQsEmpty").style.display = "block";
+  const fb = document.getElementById("createExamFeedback");
+  fb.textContent = "";
+  fb.className   = "setting-feedback";
+}
+
+// ── Load & render saved exams from Firestore ──────────────────────────────
+async function loadSavedExams() {
+  const container = document.getElementById("adminExamsList");
+  container.innerHTML = `<p class="admin-loading">Loading saved exams…</p>`;
+  try {
+    const snap = await getDocs(collection(db, "exams"));
+    if (snap.empty) {
+      container.innerHTML = `<p class="admin-loading">No exams saved yet.</p>`;
+      return;
+    }
+    const exams = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    // Sort newest first
+    exams.sort((a, b) => b.createdAt - a.createdAt);
+
+    container.innerHTML = exams.map(exam => {
+      const date = new Date(exam.createdAt).toLocaleString("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+      const duration = Math.round((exam.durationSeconds || 0) / 60);
+      return `
+        <div class="saved-exam-card" data-doc-id="${escHtml(exam._docId)}">
+          <div class="saved-exam-info">
+            <span class="saved-exam-title">${escHtml(exam.title)}</span>
+            <span class="saved-exam-meta">
+              📂 ${escHtml(exam.subject)} &nbsp;·&nbsp;
+              ❓ ${(exam.questions || []).length} questions &nbsp;·&nbsp;
+              ⏱️ ${duration} min &nbsp;·&nbsp;
+              📅 ${date}
+            </span>
+          </div>
+          <div class="saved-exam-actions">
+            <button class="tbl-btn del-btn saved-exam-delete-btn" data-doc-id="${escHtml(exam._docId)}" title="Delete exam">🗑️ Delete</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    // Attach delete listeners
+    container.querySelectorAll(".saved-exam-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const docId = btn.dataset.docId;
+        if (!confirm("Delete this exam? This cannot be undone.")) return;
+        try {
+          await deleteDoc(doc(db, "exams", docId));
+          showToast("Exam deleted 🗑️");
+          loadSavedExams();
+        } catch (err) {
+          console.error("[admin] deleteExam error:", err);
+          showToast("Failed to delete exam ❌", "error");
+        }
+      });
+    });
+  } catch (err) {
+    console.error("[admin] loadSavedExams error:", err);
+    container.innerHTML = `<p class="admin-loading" style="color:var(--red)">Failed to load exams: ${escHtml(err.message)}</p>`;
+  }
+}

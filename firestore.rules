@@ -81,6 +81,15 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ── exams/{examId} ───────────────────────────────────────────────
+    //  • Admin can create, read, update, and delete exams.
+    //  • Authenticated students can read exams (to populate choose.html).
+    //  • No student writes allowed — exams are admin-managed only.
+    match /exams/{examId} {
+      allow create, update, delete: if isAdmin();
+      allow read:                   if isSignedIn();
+    }
+
     // ── Deny everything else ──────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

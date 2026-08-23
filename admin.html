@@ -69,6 +69,9 @@
         <button class="admin-nav-btn" data-tab="addTab" id="navAdd">
           <span>➕</span> Add Question
         </button>
+        <button class="admin-nav-btn" data-tab="createExamTab" id="navCreateExam">
+          <span>📝</span> Create Exam
+        </button>
         <button class="admin-nav-btn" data-tab="resultsTab" id="navResults">
           <span>📊</span> Results
         </button>
@@ -224,7 +227,70 @@
         </section>
 
         <!-- ─────────────────────────────────────────────
-             TAB 3: RESULTS
+             TAB 3: CREATE EXAM
+        ───────────────────────────────────────────── -->
+        <section class="admin-tab" id="createExamTab">
+          <div class="admin-section-header">
+            <h2>Create New Exam</h2>
+          </div>
+
+          <!-- ── Exam Metadata ── -->
+          <div class="admin-settings-card">
+            <div class="create-exam-meta-grid">
+              <div class="admin-field">
+                <label for="examTitle">Exam Title</label>
+                <input type="text" id="examTitle" class="admin-input"
+                  placeholder="e.g. Medical Products Exam — Round 1" />
+                <span class="admin-field-err" id="examTitleErr"></span>
+              </div>
+              <div class="admin-field">
+                <label for="examSubject">Subject / Category</label>
+                <input type="text" id="examSubject" class="admin-input"
+                  placeholder="e.g. Medical, Soft Skills, Pharmacology…" />
+                <span class="admin-field-err" id="examSubjectErr"></span>
+              </div>
+              <div class="admin-field">
+                <label for="examDurationMin">Duration (minutes)</label>
+                <input type="number" id="examDurationMin" class="admin-input"
+                  min="1" max="360" value="45" />
+                <span class="admin-field-err" id="examDurationErr"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Question Builder ── -->
+          <div class="admin-settings-card" style="margin-top:1.5rem">
+            <div class="create-exam-qb-header">
+              <h3>Questions</h3>
+              <button class="admin-save-btn" id="addExamQuestionBtn" type="button">➕ Add Question</button>
+            </div>
+            <div id="examQuestionsList" class="exam-questions-list">
+              <!-- Question blocks injected here by JS -->
+              <p class="exam-qs-empty" id="examQsEmpty">No questions added yet. Click "Add Question" to begin.</p>
+            </div>
+          </div>
+
+          <!-- ── Existing Exams List ── -->
+          <div class="admin-settings-card" style="margin-top:1.5rem">
+            <div class="create-exam-qb-header">
+              <h3>Saved Exams</h3>
+              <button class="admin-save-btn" id="refreshExamsBtn" type="button">🔄 Refresh</button>
+            </div>
+            <div id="adminExamsList" class="admin-exams-list">
+              <p class="admin-loading">Loading saved exams…</p>
+            </div>
+          </div>
+
+          <!-- ── Save Button ── -->
+          <div class="admin-form-actions" style="margin-top:1.5rem">
+            <button class="admin-save-btn" id="saveExamBtn" type="button">💾 Save Exam to Firestore</button>
+            <button class="admin-cancel-btn" id="clearExamFormBtn" type="button">✕ Clear Form</button>
+          </div>
+          <div class="setting-feedback" id="createExamFeedback"></div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             TAB 4: RESULTS
         ───────────────────────────────────────────── -->
         <section class="admin-tab" id="resultsTab">
           <div class="admin-section-header">
