@@ -35,45 +35,13 @@
         <p>Choose the exam type below to begin your assessment</p>
       </div>
 
-      <!-- ── Exam Cards ── -->
-      <div class="exam-cards animate__animated animate__fadeInUp" style="animation-delay:0.15s">
-
-        <!-- Medical Card -->
-        <div class="exam-card medical-card" id="medicalCard" tabindex="0" role="button" aria-label="Start Medical Exam">
-          <div class="card-glow medical-glow"></div>
-          <div class="card-icon">🏥</div>
-          <h2 class="card-title">Medical Exam</h2>
-          <p class="card-desc">
-            Test your knowledge on pharmaceutical products including
-            Orogeng, Doveyderm, Nova Dova, Oroking-C, Jovey Joy, and Quote Fine Cream.
-          </p>
-          <div class="card-meta-row">
-            <span class="card-badge" id="medicalCount">56 Questions</span>
-            <span class="card-badge">45 Minutes</span>
-          </div>
-          <button class="card-btn" id="medicalBtn">
-            Start Exam <span class="arrow">→</span>
-          </button>
+      <!-- ── Exam Cards — injected dynamically from Firestore ── -->
+      <div class="exam-cards animate__animated animate__fadeInUp" style="animation-delay:0.15s" id="examCardsContainer">
+        <!-- Loading skeleton -->
+        <div class="exam-card-loading" id="examCardsLoading">
+          <div class="card-loading-spinner">⏳</div>
+          <p>Loading exams…</p>
         </div>
-
-        <!-- Soft Skills Card -->
-        <div class="exam-card soft-card" id="softCard" tabindex="0" role="button" aria-label="Start Soft Skills Exam">
-          <div class="card-glow soft-glow"></div>
-          <div class="card-icon">💼</div>
-          <h2 class="card-title">Soft Skills Exam</h2>
-          <p class="card-desc">
-            Evaluate your professional communication, teamwork, client handling,
-            and interpersonal skills as a medical representative.
-          </p>
-          <div class="card-meta-row">
-            <span class="card-badge" id="softCount">15 Questions</span>
-            <span class="card-badge">45 Minutes</span>
-          </div>
-          <button class="card-btn soft-btn" id="softBtn">
-            Start Exam <span class="arrow">→</span>
-          </button>
-        </div>
-
       </div>
     </main>
 

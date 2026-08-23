@@ -298,8 +298,12 @@
         <section class="admin-tab" id="examsTab">
           <div class="admin-section-header">
             <h2>Exams</h2>
-            <button class="admin-save-btn" id="refreshExamsTabBtn" style="font-size:.85rem">🔄 Refresh</button>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+              <button class="admin-save-btn" id="seedDefaultExamsBtn" style="font-size:.85rem;background:linear-gradient(135deg,#8b5cf6,#6d28d9)">⬆️ Seed Default Exams</button>
+              <button class="admin-save-btn" id="refreshExamsTabBtn" style="font-size:.85rem">🔄 Refresh</button>
+            </div>
           </div>
+          <div class="setting-feedback" id="seedFeedback" style="margin-bottom:1rem"></div>
 
           <!-- Stats row -->
           <div class="admin-stats" id="examsStats" style="margin-bottom:1.5rem">

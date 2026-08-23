@@ -9,21 +9,23 @@ let questionCards = null; // set lazily inside displayQuestions()
 //  Exam class — holds grades, timer, and marked questions
 // ──────────────────────────────────────────────────────────────
 export class Exam {
-  constructor({ examType }) {
+  constructor({ examType, questions = null }) {
     this.grades          = 0;
     this.examType        = examType;
     this.markedQuestions = [];
     this.timerInterval   = null;
     this.onTimeout       = null;
+    this._questions      = questions;  // pre-loaded from Firestore (or null → fallback)
   }
 
-  // ── Load questions from localStorage ──────────────────────
+  // ── Load questions — from injected array or localStorage fallback ──────
   getQuestions() {
+    if (this._questions) return this._questions;
+    // Legacy fallback: read from localStorage
     const allQuestions = JSON.parse(
       localStorage.getItem("adminQuestions") || "[]"
     );
     const filtered = allQuestions.filter(q => q.examType === this.examType);
-    // Return in original order (no shuffle)
     return filtered;
   }
 

@@ -2,7 +2,7 @@ import { Exam } from "./examClass.js";
 import { Question } from "./examClass.js";
 import { auth, DEFAULT_EXAM_DURATION_SECONDS, db } from "./config.js";
 import {
-  collection, addDoc, query, where, getDocs
+  collection, addDoc, query, where, getDocs, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ── Auth guard ──────────────────────────────────────────────────────────
@@ -10,14 +10,21 @@ if (!localStorage.getItem("email")) {
   window.location.replace("login.html");
 }
 
-// ── Read exam type from session ─────────────────────────────────────────
-const examType = sessionStorage.getItem("examType") || "medical";
-const userEmail = localStorage.getItem("email");
+// ── Read exam identity from session ─────────────────────────────────────
+// New: prefer examDocId (Firestore-backed); fallback to legacy examType
+const examDocId  = sessionStorage.getItem("examDocId")  || null;
+const examType   = sessionStorage.getItem("examType")   || "medical";
+const userEmail  = localStorage.getItem("email");
 
 let questionsArray = [];
 let myExam;
-let examSubmitted = false;
+let examSubmitted  = false;
 let violationCount = 0;
+
+// ── Resolved exam metadata (filled after Firestore fetch) ─────────────────
+let resolvedExamType  = examType;   // kept for examResults compatibility
+let resolvedTitle     = "";
+let resolvedDuration  = parseInt(localStorage.getItem("examDuration") || String(DEFAULT_EXAM_DURATION_SECONDS), 10);
 
 // ══════════════════════════════════════════════════════════════════════════
 //  FULLSCREEN HELPERS
@@ -64,9 +71,48 @@ function onFullscreenChange() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+//  LOAD EXAM DATA FROM FIRESTORE
+//  Fetches questions and metadata from the exams/ collection.
+//  Falls back to localStorage if no examDocId is in session.
+// ══════════════════════════════════════════════════════════════════════════
+async function loadExamData() {
+  if (examDocId) {
+    // ── Firestore-backed exam ────────────────────────────────────────────
+    try {
+      const snap = await getDoc(doc(db, "exams", examDocId));
+      if (!snap.exists()) {
+        console.error("[exam] Exam doc not found:", examDocId);
+        return null;
+      }
+      const data = snap.data();
+      resolvedTitle    = data.title || "";
+      resolvedDuration = data.durationSeconds || DEFAULT_EXAM_DURATION_SECONDS;
+      // Map Firestore questions to the shape examClass.js expects
+      const qs = (data.questions || []).map((q, i) => ({
+        id:           q.id ?? (i + 1),
+        examType:     data.subject || "general",   // used in UI badge
+        type:         q.type,
+        text:         q.text,
+        correct:      q.correct,           // tf
+        options:      q.options,           // mcq
+        correctIndex: q.correctIndex,      // mcq
+      }));
+      // Store subject as resolvedExamType for examResults (best-effort)
+      resolvedExamType = data.subject || examType;
+      return qs;
+    } catch (err) {
+      console.error("[exam] Firestore fetch error:", err);
+      return null;
+    }
+  } else {
+    // ── Legacy localStorage path ─────────────────────────────────────────
+    const allQ = JSON.parse(localStorage.getItem("adminQuestions") || "[]");
+    return allQ.filter(q => q.examType === examType);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 //  UI SETUP
-//  ES modules are deferred — DOM is guaranteed ready when this code runs.
-//  We attach listeners directly WITHOUT waiting for DOMContentLoaded.
 // ══════════════════════════════════════════════════════════════════════════
 
 // Return to fullscreen button
@@ -88,46 +134,66 @@ if (enterBtn) {
   });
 }
 
-// ── Check if already submitted (async, fire-and-forget) ─────────────────
-// Runs in the background — if done, redirects. No await at top level
-// to avoid blocking UI listener registration.
+// ── Check if already submitted ───────────────────────────────────────────
 async function checkAlreadyDone() {
+  if (!examDocId) {
+    // Legacy path
+    try {
+      const q = query(
+        collection(db, "examResults"),
+        where("studentEmail", "==", userEmail),
+        where("examType",     "==", examType)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) window.location.replace("choose.html");
+    } catch (err) {
+      console.error("[exam] checkAlreadyDone (legacy) error:", err);
+    }
+    return;
+  }
+  // Firestore-backed: check by examDocId
   try {
     const q = query(
       collection(db, "examResults"),
       where("studentEmail", "==", userEmail),
-      where("examType", "==", examType)
+      where("examDocId",    "==", examDocId)
     );
     const snap = await getDocs(q);
-    if (!snap.empty) {
-      window.location.replace("choose.html");
-    }
+    if (!snap.empty) window.location.replace("choose.html");
   } catch (err) {
     console.error("[exam] checkAlreadyDone error:", err);
   }
 }
-checkAlreadyDone(); // fire-and-forget (no top-level await)
+checkAlreadyDone();
 
 // ══════════════════════════════════════════════════════════════════════════
 //  EXAM INIT (called after user enters fullscreen)
 // ══════════════════════════════════════════════════════════════════════════
-function initExam() {
-  const duration = parseInt(localStorage.getItem("examDuration") || String(DEFAULT_EXAM_DURATION_SECONDS), 10);
+async function initExam() {
+  // Show loading state while we fetch
+  const body = document.querySelector(".exam-body");
+  if (body) body.innerHTML = `<div class="admin-loading" style="padding:2rem;text-align:center">Loading exam…</div>`;
+
+  const loadedQuestions = await loadExamData();
 
   const titleEl = document.querySelector(".exam-title");
   if (titleEl) {
-    titleEl.textContent = examType === "medical" ? "🏥 Medical Exam" : "💼 Soft Skills Exam";
+    if (resolvedTitle) {
+      titleEl.textContent = resolvedTitle;
+    } else {
+      titleEl.textContent = examType === "medical" ? "🏥 Medical Exam" : "💼 Soft Skills Exam";
+    }
   }
 
-  myExam = new Exam({ examType });
+  myExam = new Exam({ examType: resolvedExamType, questions: loadedQuestions });
   questionsArray = myExam.getQuestions();
 
   if (questionsArray.length === 0) {
-    document.querySelector(".exam-body").innerHTML = `
+    if (body) body.innerHTML = `
       <div class="no-questions-msg">
         <div style="font-size:3rem">📭</div>
         <h3>No Questions Available</h3>
-        <p>The admin hasn't added any questions for this exam type yet.</p>
+        <p>The admin hasn't added any questions for this exam yet.</p>
         <button onclick="window.location.href='choose.html'" class="btn-retry">← Go Back</button>
       </div>
     `;
@@ -137,8 +203,8 @@ function initExam() {
   new Question(0, questionsArray, myExam).displayQuestions();
 
   const labelEl = document.getElementById("timerLabel");
-  const fillEl = document.getElementById("timerFill");
-  myExam.startTimer(duration, labelEl, fillEl, showTimeoutPage);
+  const fillEl  = document.getElementById("timerFill");
+  myExam.startTimer(resolvedDuration, labelEl, fillEl, showTimeoutPage);
 
   document.getElementById("submitBtn").addEventListener("click", () => {
     myExam.stopTimer();
@@ -156,10 +222,10 @@ async function saveExamResult(isTimeout) {
       return;
     }
 
-    const firstName = localStorage.getItem("f_name") || "Student";
-    const lastName = localStorage.getItem("l_name") || "";
+    const firstName    = localStorage.getItem("f_name") || "Student";
+    const lastName     = localStorage.getItem("l_name") || "";
     const studentEmail = auth.currentUser?.email || "";
-    const uid = auth.currentUser?.uid || "";
+    const uid          = auth.currentUser?.uid   || "";
 
     const answers = questionsArray.map(q => {
       const correctAnswer = q.type === "tf"
@@ -167,35 +233,37 @@ async function saveExamResult(isTimeout) {
         : q.options[q.correctIndex];
       const selected = q.selectedAnswer || null;
       return {
-        questionId: q.id,
-        questionText: q.text,
-        questionType: q.type,
-        options: q.type === "mcq" ? q.options : ["True", "False"],
+        questionId:    q.id,
+        questionText:  q.text,
+        questionType:  q.type,
+        options:       q.type === "mcq" ? q.options : ["True", "False"],
         selectedAnswer: selected,
-        correctAnswer: correctAnswer,
-        isCorrect: selected !== null && selected === correctAnswer,
-        skipped: selected === null || selected === undefined
+        correctAnswer:  correctAnswer,
+        isCorrect:     selected !== null && selected === correctAnswer,
+        skipped:       selected === null || selected === undefined
       };
     });
 
     const calculatedScore = answers.filter(a => a.isCorrect).length;
 
     const result = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      examType: examType,
-      studentName: `${firstName} ${lastName}`.trim(),
+      id:           Date.now(),
+      timestamp:    new Date().toISOString(),
+      examType:     resolvedExamType,
+      examDocId:    examDocId || null,      // null for legacy exams
+      examTitle:    resolvedTitle  || null,
+      studentName:  `${firstName} ${lastName}`.trim(),
       studentEmail: studentEmail,
-      uid: uid,
-      score: calculatedScore,
-      total: questionsArray.length,
-      isTimeout: isTimeout,
-      violations: violationCount,
-      answers: answers
+      uid:          uid,
+      score:        calculatedScore,
+      total:        questionsArray.length,
+      isTimeout:    isTimeout,
+      violations:   violationCount,
+      answers:      answers
     };
 
     await addDoc(collection(db, "examResults"), result);
-    console.log("[saveExamResult] Saved to Firestore for", studentEmail, "score:", calculatedScore, "/", questionsArray.length);
+    console.log("[saveExamResult] Saved for", studentEmail, "score:", calculatedScore, "/", questionsArray.length);
 
   } catch (err) {
     console.error("[saveExamResult] Firestore error:", err);
@@ -206,10 +274,10 @@ async function saveExamResult(isTimeout) {
 function showGradesPage() {
   saveExamResult(false);
 
-  const firstName = localStorage.getItem("f_name") || "Student";
-  const lastName = localStorage.getItem("l_name") || "";
-  const savedImage = localStorage.getItem("image") || "";
-  const imgTag = savedImage
+  const firstName  = localStorage.getItem("f_name") || "Student";
+  const lastName   = localStorage.getItem("l_name") || "";
+  const savedImage = localStorage.getItem("image")  || "";
+  const imgTag     = savedImage
     ? `<img id="imagepreview" src="${savedImage}" alt="Profile" />`
     : "";
 
@@ -232,10 +300,10 @@ function showTimeoutPage() {
   saveExamResult(true);
   exitFullscreen().catch(() => { });
 
-  const firstName = localStorage.getItem("f_name") || "Student";
-  const lastName = localStorage.getItem("l_name") || "";
-  const savedImage = localStorage.getItem("image") || "";
-  const imgTag = savedImage
+  const firstName  = localStorage.getItem("f_name") || "Student";
+  const lastName   = localStorage.getItem("l_name") || "";
+  const savedImage = localStorage.getItem("image")  || "";
+  const imgTag     = savedImage
     ? `<img id="imagepreview" src="${savedImage}" alt="Profile" />`
     : "";
 

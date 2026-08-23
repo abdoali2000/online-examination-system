@@ -2498,3 +2498,54 @@ body {
 .saved-exam-actions {
   flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHOOSE PAGE — DYNAMIC LOADING & EMPTY STATES
+═══════════════════════════════════════════════════════════════ */
+
+/* Loading spinner card */
+.exam-card-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.95rem;
+  min-width: 260px;
+}
+
+.card-loading-spinner {
+  font-size: 2.5rem;
+  animation: spin-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spin-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.2); opacity: 0.6; }
+}
+
+/* Empty state card */
+.exam-card-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  min-width: 260px;
+}
+
+.exam-card-empty h3 {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+}
+
+.exam-card-empty p {
+  font-size: 0.85rem;
+  margin: 0;
+}

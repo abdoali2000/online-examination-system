@@ -1,7 +1,7 @@
 import { ADMIN_UID, DEFAULT_EXAM_DURATION_SECONDS, db, auth } from "./config.js";
 import { defaultQuestions } from "./questions.js";
 import {
-  collection, getDocs, deleteDoc, doc, addDoc, getDoc, updateDoc
+  collection, getDocs, deleteDoc, doc, addDoc, getDoc, updateDoc, setDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -1143,6 +1143,9 @@ function initExamsTab() {
   // Refresh button
   document.getElementById("refreshExamsTabBtn").addEventListener("click", renderExamsTable);
 
+  // Seed button
+  document.getElementById("seedDefaultExamsBtn").addEventListener("click", seedDefaultExams);
+
   // Edit modal — close buttons
   document.getElementById("editExamClose").addEventListener("click", closeEditExamModal);
   document.getElementById("cancelEditExamBtn").addEventListener("click", closeEditExamModal);
@@ -1302,5 +1305,91 @@ async function deleteExamFromTable(docId) {
   } catch (err) {
     console.error("[admin] deleteExamFromTable error:", err);
     showToast("Failed to delete exam ❌", "error");
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+//  SEED DEFAULT EXAMS TO FIRESTORE
+//  Uploads the two built-in exam structures (Medical + Soft Skills) to the
+//  exams/ collection.  Skips any that already exist (matched by title).
+// ══════════════════════════════════════════════════════════════════════════
+async function seedDefaultExams() {
+  const fb  = document.getElementById("seedFeedback");
+  const btn = document.getElementById("seedDefaultExamsBtn");
+
+  fb.textContent  = "";
+  fb.className    = "setting-feedback";
+  btn.disabled    = true;
+  btn.textContent = "Seeding…";
+
+  try {
+    // ── Check existing exams to avoid duplicates ──────────────────────────
+    const existingSnap  = await getDocs(collection(db, "exams"));
+    const existingTitles = new Set(
+      existingSnap.docs.map(d => (d.data().title || "").toLowerCase().trim())
+    );
+
+    // ── Build the two default exam payloads ──────────────────────────────
+    const medicalQs   = defaultQuestions.filter(q => q.examType === "medical");
+    const softQs      = defaultQuestions.filter(q => q.examType === "softskills");
+
+    const DEFAULT_EXAMS = [
+      {
+        title:           "Medical Exam",
+        subject:         "medical",
+        durationSeconds: 45 * 60,
+        questions:       medicalQs.map((q, i) => {
+          const base = { id: q.id ?? i + 1, type: q.type, text: q.text };
+          return q.type === "tf"
+            ? { ...base, correct: q.correct }
+            : { ...base, options: q.options, correctIndex: q.correctIndex };
+        }),
+        createdAt: Date.now(),
+      },
+      {
+        title:           "Soft Skills Exam",
+        subject:         "softskills",
+        durationSeconds: 45 * 60,
+        questions:       softQs.map((q, i) => {
+          const base = { id: q.id ?? i + 1, type: q.type, text: q.text };
+          return q.type === "tf"
+            ? { ...base, correct: q.correct }
+            : { ...base, options: q.options, correctIndex: q.correctIndex };
+        }),
+        createdAt: Date.now() + 1,   // +1ms so medical sorts first
+      },
+    ];
+
+    let added   = 0;
+    let skipped = 0;
+
+    for (const exam of DEFAULT_EXAMS) {
+      if (existingTitles.has(exam.title.toLowerCase().trim())) {
+        skipped++;
+        continue;
+      }
+      await addDoc(collection(db, "exams"), exam);
+      added++;
+    }
+
+    if (added === 0 && skipped > 0) {
+      fb.textContent = `ℹ️ Both default exams already exist in Firestore — nothing was added.`;
+      fb.className   = "setting-feedback";
+    } else {
+      fb.textContent = `✅ Seeded ${added} exam(s) to Firestore${skipped ? ` (${skipped} already existed, skipped)` : ""}.`;
+      fb.className   = "setting-feedback success";
+      showToast(`${added} exam(s) seeded to Firestore ✅`);
+      renderExamsTable();
+    }
+
+  } catch (err) {
+    console.error("[admin] seedDefaultExams error:", err);
+    fb.textContent = `❌ Seed failed: ${err.message}`;
+    fb.className   = "setting-feedback error";
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = "⬆️ Seed Default Exams";
+    setTimeout(() => { fb.textContent = ""; fb.className = "setting-feedback"; }, 6000);
   }
 }
