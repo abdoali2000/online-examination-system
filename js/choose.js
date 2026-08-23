@@ -1,3 +1,5 @@
+import { auth } from "./config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { db } from "./config.js";
 import {
   collection, getDocs, query, where
@@ -140,7 +142,23 @@ function escHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-init();
+// ── Wait for Firebase Auth before reading Firestore ──────────────────────
+// Firestore rules require request.auth != null. Wrapping in onAuthStateChanged
+// ensures the auth token is ready before any Firestore request is made.
+let initRan = false;
+onAuthStateChanged(auth, (user) => {
+  if (initRan) return;   // only run once
+  initRan = true;
+
+  if (user) {
+    // Firebase Auth is ready — safe to call Firestore
+    init();
+  } else {
+    // Auth session expired / not started — redirect to login
+    localStorage.removeItem("email");
+    window.location.replace("login.html");
+  }
+});
 
 // ── Logout ───────────────────────────────────────────────────────────────
 document.getElementById("logoutBtn").addEventListener("click", () => {
