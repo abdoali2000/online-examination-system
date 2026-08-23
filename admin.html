@@ -72,6 +72,9 @@
         <button class="admin-nav-btn" data-tab="createExamTab" id="navCreateExam">
           <span>📝</span> Create Exam
         </button>
+        <button class="admin-nav-btn" data-tab="examsTab" id="navExams">
+          <span>🗂️</span> Exams
+        </button>
         <button class="admin-nav-btn" data-tab="resultsTab" id="navResults">
           <span>📊</span> Results
         </button>
@@ -290,7 +293,42 @@
         </section>
 
         <!-- ─────────────────────────────────────────────
-             TAB 4: RESULTS
+             TAB 4: EXAMS MANAGEMENT
+        ───────────────────────────────────────────── -->
+        <section class="admin-tab" id="examsTab">
+          <div class="admin-section-header">
+            <h2>Exams</h2>
+            <button class="admin-save-btn" id="refreshExamsTabBtn" style="font-size:.85rem">🔄 Refresh</button>
+          </div>
+
+          <!-- Stats row -->
+          <div class="admin-stats" id="examsStats" style="margin-bottom:1.5rem">
+            <span class="stat-chip" id="statExamsTotal">Total: 0</span>
+          </div>
+
+          <!-- Exams table -->
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="examsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Subject</th>
+                  <th>Questions</th>
+                  <th>Duration</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="examsBody">
+                <tr><td colspan="7" class="admin-loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────
+             TAB 5: RESULTS
         ───────────────────────────────────────────── -->
         <section class="admin-tab" id="resultsTab">
           <div class="admin-section-header">
@@ -390,6 +428,39 @@
       </div>
       <div class="admin-modal-body" id="modalBody">
         <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ EDIT EXAM MODAL ═══ -->
+  <div class="admin-modal-overlay" id="editExamOverlay" style="display:none">
+    <div class="admin-modal animate__animated animate__zoomIn">
+      <div class="admin-modal-header">
+        <h3>✏️ Edit Exam</h3>
+        <button class="modal-close" id="editExamClose">✕</button>
+      </div>
+      <div class="admin-modal-body">
+        <input type="hidden" id="editExamDocId" />
+        <div class="admin-field">
+          <label for="editExamTitle">Exam Title</label>
+          <input type="text" id="editExamTitle" class="admin-input" placeholder="Exam title" />
+          <span class="admin-field-err" id="editExamTitleErr"></span>
+        </div>
+        <div class="admin-field" style="margin-top:1rem">
+          <label for="editExamSubject">Subject / Category</label>
+          <input type="text" id="editExamSubject" class="admin-input" placeholder="Subject" />
+          <span class="admin-field-err" id="editExamSubjectErr"></span>
+        </div>
+        <div class="admin-field" style="margin-top:1rem">
+          <label for="editExamDuration">Duration (minutes)</label>
+          <input type="number" id="editExamDuration" class="admin-input" min="1" max="360" />
+          <span class="admin-field-err" id="editExamDurationErr"></span>
+        </div>
+        <div class="admin-form-actions" style="margin-top:1.5rem">
+          <button class="admin-save-btn" id="saveEditExamBtn">💾 Save Changes</button>
+          <button class="admin-cancel-btn" id="cancelEditExamBtn">Cancel</button>
+        </div>
+        <div class="setting-feedback" id="editExamFeedback"></div>
       </div>
     </div>
   </div>

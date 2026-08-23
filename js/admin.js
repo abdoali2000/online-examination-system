@@ -1,7 +1,7 @@
 import { ADMIN_UID, DEFAULT_EXAM_DURATION_SECONDS, db, auth } from "./config.js";
 import { defaultQuestions } from "./questions.js";
 import {
-  collection, getDocs, deleteDoc, doc, addDoc, getDoc
+  collection, getDocs, deleteDoc, doc, addDoc, getDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -137,6 +137,7 @@ function initDashboard() {
   initResetDefault();
   initResults();
   initCreateExam();
+  initExamsTab();
 }
 
 // ── Tab Navigation ────────────────────────────────────────────────────────
@@ -152,6 +153,10 @@ function initTabs() {
       // Always re-fetch & re-render results when switching to the Results tab
       if (targetId === "resultsTab") {
         loadResultsFromFirestore().then(() => renderResults());
+      }
+      // Reload exams list when switching to the Exams tab
+      if (targetId === "examsTab") {
+        renderExamsTable();
       }
     });
   });
@@ -1125,5 +1130,177 @@ async function loadSavedExams() {
   } catch (err) {
     console.error("[admin] loadSavedExams error:", err);
     container.innerHTML = `<p class="admin-loading" style="color:var(--red)">Failed to load exams: ${escHtml(err.message)}</p>`;
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+//  EXAMS MANAGEMENT TAB
+// ══════════════════════════════════════════════════════════════════════════
+let _examsCache = [];   // [{_docId, title, subject, durationSeconds, questions, createdAt}]
+
+function initExamsTab() {
+  // Refresh button
+  document.getElementById("refreshExamsTabBtn").addEventListener("click", renderExamsTable);
+
+  // Edit modal — close buttons
+  document.getElementById("editExamClose").addEventListener("click", closeEditExamModal);
+  document.getElementById("cancelEditExamBtn").addEventListener("click", closeEditExamModal);
+  document.getElementById("editExamOverlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("editExamOverlay")) closeEditExamModal();
+  });
+
+  // Edit modal — save
+  document.getElementById("saveEditExamBtn").addEventListener("click", saveEditedExam);
+
+  // Initial load
+  renderExamsTable();
+}
+
+// ── Fetch + render exams into the table ───────────────────────────────────
+async function renderExamsTable() {
+  const tbody = document.getElementById("examsBody");
+  tbody.innerHTML = `<tr><td colspan="7" class="admin-loading">Loading exams…</td></tr>`;
+
+  try {
+    const snap = await getDocs(collection(db, "exams"));
+    _examsCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    _examsCache.sort((a, b) => b.createdAt - a.createdAt);
+
+    // Update stats
+    document.getElementById("statExamsTotal").textContent = `Total: ${_examsCache.length}`;
+
+    if (_examsCache.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="admin-loading">No exams saved yet. Go to "Create Exam" to add one.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = _examsCache.map((exam, i) => {
+      const duration = Math.round((exam.durationSeconds || 0) / 60);
+      const qCount   = (exam.questions || []).length;
+      const dateStr  = new Date(exam.createdAt).toLocaleString("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+
+      return `
+        <tr data-doc-id="${escHtml(exam._docId)}">
+          <td class="row-num">${i + 1}</td>
+          <td style="font-weight:600;color:rgba(255,255,255,.9);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(exam.title)}">${escHtml(exam.title)}</td>
+          <td><span class="q-badge tf-badge">${escHtml(exam.subject || "—")}</span></td>
+          <td style="text-align:center"><strong style="color:rgba(255,255,255,.85)">${qCount}</strong></td>
+          <td style="text-align:center;color:rgba(255,255,255,.6)">${duration} min</td>
+          <td style="color:rgba(255,255,255,.4);font-size:.8rem;white-space:nowrap">${dateStr}</td>
+          <td class="action-cell">
+            <button class="tbl-btn edit-btn exam-edit-btn" data-doc-id="${escHtml(exam._docId)}" title="Edit exam">✏️</button>
+            <button class="tbl-btn del-btn  exam-del-btn"  data-doc-id="${escHtml(exam._docId)}" title="Delete exam">🗑️</button>
+          </td>
+        </tr>`;
+    }).join("");
+
+    // ── Attach listeners ───────────────────────────────────────────────
+    document.querySelectorAll(".exam-edit-btn").forEach(btn =>
+      btn.addEventListener("click", () => openEditExamModal(btn.dataset.docId))
+    );
+    document.querySelectorAll(".exam-del-btn").forEach(btn =>
+      btn.addEventListener("click", () => deleteExamFromTable(btn.dataset.docId))
+    );
+
+  } catch (err) {
+    console.error("[admin] renderExamsTable error:", err);
+    tbody.innerHTML = `<tr><td colspan="7" class="admin-loading" style="color:var(--red)">Failed to load exams: ${escHtml(err.message)}</td></tr>`;
+  }
+}
+
+// ── Edit modal ─────────────────────────────────────────────────────────────
+function openEditExamModal(docId) {
+  const exam = _examsCache.find(e => e._docId === docId);
+  if (!exam) return;
+
+  document.getElementById("editExamDocId").value    = docId;
+  document.getElementById("editExamTitle").value    = exam.title || "";
+  document.getElementById("editExamSubject").value  = exam.subject || "";
+  document.getElementById("editExamDuration").value = Math.round((exam.durationSeconds || 0) / 60);
+
+  // Clear errors & feedback
+  ["editExamTitleErr", "editExamSubjectErr", "editExamDurationErr"].forEach(id => {
+    document.getElementById(id).textContent = "";
+  });
+  const fb = document.getElementById("editExamFeedback");
+  fb.textContent = "";
+  fb.className   = "setting-feedback";
+
+  document.getElementById("editExamOverlay").style.display = "flex";
+}
+
+function closeEditExamModal() {
+  document.getElementById("editExamOverlay").style.display = "none";
+}
+
+async function saveEditedExam() {
+  const docId    = document.getElementById("editExamDocId").value;
+  const title    = document.getElementById("editExamTitle").value.trim();
+  const subject  = document.getElementById("editExamSubject").value.trim();
+  const duration = parseInt(document.getElementById("editExamDuration").value, 10);
+
+  const titleErr    = document.getElementById("editExamTitleErr");
+  const subjectErr  = document.getElementById("editExamSubjectErr");
+  const durationErr = document.getElementById("editExamDurationErr");
+  const fb          = document.getElementById("editExamFeedback");
+
+  // Reset
+  titleErr.textContent = subjectErr.textContent = durationErr.textContent = "";
+  fb.textContent = ""; fb.className = "setting-feedback";
+
+  let valid = true;
+  if (!title)                                  { titleErr.textContent    = "Title is required.";           valid = false; }
+  if (!subject)                                { subjectErr.textContent  = "Subject is required.";         valid = false; }
+  if (isNaN(duration) || duration < 1 || duration > 360) { durationErr.textContent = "Must be 1–360 min."; valid = false; }
+  if (!valid) return;
+
+  const saveBtn = document.getElementById("saveEditExamBtn");
+  saveBtn.disabled    = true;
+  saveBtn.textContent = "Saving…";
+
+  try {
+    await updateDoc(doc(db, "exams", docId), {
+      title,
+      subject,
+      durationSeconds: duration * 60,
+    });
+
+    // Update local cache
+    const cached = _examsCache.find(e => e._docId === docId);
+    if (cached) { cached.title = title; cached.subject = subject; cached.durationSeconds = duration * 60; }
+
+    showToast(`Exam "${title}" updated ✅`);
+    closeEditExamModal();
+    renderExamsTable();   // re-render with fresh data
+
+  } catch (err) {
+    console.error("[admin] saveEditedExam error:", err);
+    fb.textContent = `❌ Failed to save: ${err.message}`;
+    fb.className   = "setting-feedback error";
+  } finally {
+    saveBtn.disabled    = false;
+    saveBtn.textContent = "💾 Save Changes";
+  }
+}
+
+// ── Delete from exams table ────────────────────────────────────────────────
+async function deleteExamFromTable(docId) {
+  const exam = _examsCache.find(e => e._docId === docId);
+  const name = exam ? `"${exam.title}"` : "this exam";
+  if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+
+  try {
+    await deleteDoc(doc(db, "exams", docId));
+    showToast(`Exam ${name} deleted 🗑️`);
+    renderExamsTable();
+    // Also refresh the "Saved Exams" card inside Create Exam tab
+    loadSavedExams();
+  } catch (err) {
+    console.error("[admin] deleteExamFromTable error:", err);
+    showToast("Failed to delete exam ❌", "error");
   }
 }
