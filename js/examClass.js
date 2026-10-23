@@ -117,7 +117,11 @@ export class Question {
     const total    = this.questionsArray.length;
     const isMarked = this.myExam.isMarked(this.index);
     const typeBadge = this.questionType === "tf" ? "True / False" : "MCQ";
-    const examLabel = this.examType === "medical" ? "🏥 Medical" : "💼 Soft Skills";
+    const rawSubject = String(this.examType || "").trim();
+    const legacyLabels = { medical: "🏥 Medical", softskills: "💼 Soft Skills" };
+    const escSubject = rawSubject
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const examLabel = legacyLabels[rawSubject.toLowerCase()] || (escSubject ? `📝 ${escSubject}` : "📝 Exam");
 
     questionCards.innerHTML = `
       <!-- Left column: question card -->

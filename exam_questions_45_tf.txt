@@ -1,0 +1,134 @@
+1. Orogeng-H contains hyaluronic acid at a concentration of 0.4%.
+True
+
+2. A long-lasting sinus infection is known as Chronic Sinusitis.
+True
+
+3. Nova Dova nasal spray relieves nasal congestion through direct antibacterial action on the nasal mucosa.
+False
+
+4. The primary use of Jovey Joy is disinfecting the newborn's umbilical cord.
+True
+
+5. Doveyderm is suitable for use in cases of chickenpox, sunburns, insect bites, and eczema.
+True
+
+6. The main active ingredient in Jovey Joy is Ethyl Alcohol 70%.
+True
+
+7. Chlorhexidine is included in Doveyderm Lotion mainly to improve product fragrance.
+False
+
+8. Menthol in Doveyderm Lotion helps relieve symptoms of heat rash by increasing skin permeability.
+False
+
+9. Orogeng mouth wash contains chamomile extract as its primary listed component.
+False
+
+10. Doveyderm Lotion the main benefit of calamine in heat rash management is its ability to act as a potent antifungal agent.
+False
+
+11. Sweet Almond Oil contributes to Quote Fine Cream by absorbing excess moisture.
+False
+
+12. Doveyderm Lotion comes in a 120 ml bottle, priced at 69 EGP.
+False
+
+13. The competitors to Nova Dova Spray include Ticanase and Nasonex.
+False
+
+14. The percentage of chlorhexidine in Orogeng-H is 0.025%.
+False
+
+15. The turbinates consist of two pairs of bony projections.
+False
+
+16. Nova Dova nasal spray should be directed slightly outward toward the lateral nasal wall, not the septum.
+True
+
+17. Orogeng-H contains 0.5% sodium fluoride.
+False
+
+18. Nova Dova is a saline nasal spray used to treat nasal congestion.
+False
+
+19. Jovey Joy helps prevent umbilical cord infections in newborns.
+True
+
+20. Zinc oxide in Quote Fine Cream forms a physical protective layer that helps reduce irritation caused by friction or moisture.
+True
+
+21. Orogeng mouth wash is suitable for daily use from the age of 6 years.
+False
+
+22. Norhinose spray is considered a competitor to Nova Dova spray.
+False
+
+23. Oroking-C contains a chemical antifungal agent such as itraconazole.
+False
+
+24. Orogeng-H contains a therapeutic concentration of chlorhexidine.
+False
+
+25. The price of Orogeng-H is 99 EGP for a 150 ml bottle.
+False
+
+26. Oorogeng-H is distinguished by being colored, while Orogeng is transparent.
+False
+
+27. Excessive use of alcohol may cause skin irritation.
+True
+
+28. The umbilical area should be kept dry after using Jovey Joy.
+True
+
+29. Jovey Joy can be safely used on large open wounds.
+False
+
+30. Doveyderm Lotion can be useful in heat rash complicated by mild bacterial contamination.
+True
+
+31. Menthol is used mainly for its strong antibacterial activity in diaper rash treatment.
+False
+
+32. Glycerin may help accelerate skin recovery by maintaining adequate skin hydration.
+True
+
+33. Orogeng-H contains cinnamon extract and propolis.
+True
+
+34. Oroking-C is medically promoted in dentistry, pediatrics, gastroenterology, and dermatology.
+True
+
+35. Chlorhexidine has no role in preventing infection in inflamed or broken skin.
+False
+
+36. Zinc oxide helps protect irritated skin by reducing friction and preventing further exposure to irritants.
+True
+
+37. The sodium fluoride in Orogeng reduces the incidence of new tooth decay.
+False
+
+38. Shea Butter is unsuitable for dry and compromised skin.
+False
+
+39. Quote Fine Cream ingredients make it suitable for frequent daily use.
+True
+
+40. Oroking-C is used for teething in newborns.
+True
+
+41. Quote Fine Cream can be used to relieve nipple irritation in breastfeeding mothers.
+True
+
+42. Orogeng contains a prophylactic concentration of chlorhexidine.
+False
+
+43. Quote Fine contains hyaluronic acid and panthenol, while Nova Dova does not contain them.
+False
+
+44. Orogeng-H is used for daily oral hygiene and personal care.
+True
+
+45. Nasal Congestion also called a stuffy nose and considered a symptom of another health problem.
+True
