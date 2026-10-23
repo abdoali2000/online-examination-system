@@ -780,6 +780,20 @@ function initCreateExam() {
 
   // Initial load
   loadSavedExams();
+
+  // ── Word Import event — fired by the inline WIM script ───────────────
+  document.addEventListener("wimImport", (e) => {
+    const imported = e.detail?.questions ?? [];
+    if (!imported.length) return;
+    imported.forEach(q => addDraftQuestion({
+      type:         q.type,
+      text:         q.text,
+      options:      q.options ?? ["", "", "", ""],
+      correctIndex: q.correctIndex ?? 0,
+      correct:      q.correct ?? true
+    }));
+    showToast(`✅ Imported ${imported.length} question${imported.length > 1 ? "s" : ""} from Word`);
+  });
 }
 
 // ── Draft question management ─────────────────────────────────────────────

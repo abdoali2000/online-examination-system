@@ -13,6 +13,123 @@
     crossorigin="anonymous"
   />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <!-- mammoth.js: reads .docx files in the browser -->
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    /* ── Word Import Modal ───────────────────────────────────────── */
+    #wordImportOverlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+      z-index: 2000; align-items: center; justify-content: center;
+    }
+    #wordImportOverlay.open { display: flex; }
+    #wordImportModal {
+      background: #151829; border: 1px solid #2a2f50;
+      border-radius: 16px; width: min(800px, 95vw);
+      max-height: 90vh; display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,.6);
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    .wim-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid #2a2f50;
+      background: linear-gradient(135deg,#1a1d3a,#0f1220);
+    }
+    .wim-header h3 { font-size: 1.1rem; font-weight: 700; color: #e8eaf6; display:flex; align-items:center; gap:8px; }
+    .wim-close {
+      background: rgba(255,85,114,.12); border: 1px solid rgba(255,85,114,.3);
+      color: #ff5572; border-radius: 8px; padding: 5px 12px;
+      cursor: pointer; font-size: .85rem; font-weight: 700;
+    }
+    .wim-body { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; flex:1; }
+    #wimDropZone {
+      border: 2px dashed #2a2f50; border-radius: 12px;
+      padding: 36px 20px; text-align: center; cursor: pointer;
+      transition: all .3s; background: #1c2038;
+    }
+    #wimDropZone:hover, #wimDropZone.drag-over {
+      border-color: #6c63ff; background: rgba(108,99,255,.08);
+    }
+    #wimDropZone .wim-drop-icon { font-size: 3rem; margin-bottom: 8px; }
+    #wimDropZone p { color: #7b83b0; font-size: .9rem; }
+    #wimDropZone strong { color: #6c63ff; }
+    #wimFileInput { display: none; }
+    #wimFileTag {
+      display: none; align-items: center; gap: 8px;
+      background: rgba(108,99,255,.1); border: 1px solid rgba(108,99,255,.3);
+      border-radius: 8px; padding: 8px 14px; font-size: .85rem; color: #e8eaf6;
+    }
+    #wimFileTag.visible { display: flex; }
+    #wimFileTag span { flex: 1; }
+    .wim-guide {
+      background: #1c2038; border: 1px solid #2a2f50;
+      border-radius: 10px; padding: 14px; font-size: .8rem; color: #7b83b0;
+    }
+    .wim-guide strong { color: #00d4aa; }
+    .wim-guide code {
+      display: block; font-family: monospace; margin-top: 8px;
+      color: #c5d8ff; line-height: 1.8; white-space: pre;
+    }
+    #wimStatsBar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      opacity: 0; transition: opacity .4s;
+    }
+    #wimStatsBar.visible { opacity: 1; }
+    .wim-pill {
+      padding: 5px 12px; border-radius: 20px; font-size: .78rem; font-weight: 700;
+    }
+    .wim-pill-tot  { background: rgba(108,99,255,.18); color: #a89fff; border: 1px solid rgba(108,99,255,.3); }
+    .wim-pill-tf   { background: rgba(255,208,128,.15); color: #ffd080; border: 1px solid rgba(255,208,128,.3); }
+    .wim-pill-mcq  { background: rgba(128,255,204,.12); color: #80ffcc; border: 1px solid rgba(128,255,204,.3); }
+    .wim-pill-warn { background: rgba(255,85,114,.12);  color: #ff5572; border: 1px solid rgba(255,85,114,.3); }
+    #wimPreview {
+      max-height: 240px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .wim-qrow {
+      background: #1c2038; border: 1px solid #2a2f50;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: .82rem; color: #e8eaf6; line-height: 1.5;
+      border-right: 3px solid transparent;
+    }
+    .wim-qrow.wtf  { border-right-color: #ffd080; }
+    .wim-qrow.wmcq { border-right-color: #80ffcc; }
+    .wim-qrow.werr { border-right-color: #ff5572; background: rgba(255,85,114,.05); }
+    .wim-qrow .wtag {
+      display: inline-block; font-size: .7rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px; margin-left: 6px;
+    }
+    .wtf  .wtag { background: rgba(255,208,128,.18); color: #ffd080; }
+    .wmcq .wtag { background: rgba(128,255,204,.15); color: #80ffcc; }
+    .werr .wtag { background: rgba(255,85,114,.15);  color: #ff5572; }
+    .wim-footer {
+      padding: 16px 24px; border-top: 1px solid #2a2f50;
+      display: flex; gap: 12px; justify-content: flex-end;
+    }
+    .wim-btn-parse {
+      padding: 10px 22px; border: none; border-radius: 9px;
+      background: linear-gradient(135deg,#6c63ff,#8b83ff);
+      color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer;
+      font-family: inherit;
+    }
+    .wim-btn-parse:disabled { opacity: .4; cursor: not-allowed; }
+    .wim-btn-parse:hover:not(:disabled) { transform: translateY(-1px); }
+    .wim-btn-add {
+      padding: 10px 22px; border: none; border-radius: 9px;
+      background: linear-gradient(135deg,#00d4aa,#00a882);
+      color: #021a13; font-weight: 700; font-size: .9rem; cursor: pointer;
+      font-family: inherit;
+    }
+    .wim-btn-add:disabled { opacity: .4; cursor: not-allowed; }
+    .wim-btn-add:hover:not(:disabled) { transform: translateY(-1px); }
+    .wim-btn-cancel {
+      padding: 10px 22px; border: 1px solid #2a2f50; border-radius: 9px;
+      background: #1c2038; color: #7b83b0; font-weight: 700;
+      font-size: .9rem; cursor: pointer; font-family: inherit;
+    }
+    .wim-btn-cancel:hover { border-color: #6c63ff; color: #a89fff; }
+  </style>
 </head>
 <body>
 
@@ -265,7 +382,13 @@
           <div class="admin-settings-card" style="margin-top:1.5rem">
             <div class="create-exam-qb-header">
               <h3>Questions</h3>
-              <button class="admin-save-btn" id="addExamQuestionBtn" type="button">➕ Add Question</button>
+              <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+                <button class="admin-save-btn" id="addExamQuestionBtn" type="button">➕ Add Question</button>
+                <button class="admin-save-btn" id="openWordImportBtn" type="button"
+                  style="background:linear-gradient(135deg,#00d4aa,#00a882);color:#021a13">
+                  📥 Import from Word
+                </button>
+              </div>
             </div>
             <div id="examQuestionsList" class="exam-questions-list">
               <!-- Question blocks injected here by JS -->
@@ -503,6 +626,244 @@
 
   <!-- Toast notification -->
   <div class="admin-toast" id="adminToast"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       WORD IMPORT MODAL
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="wordImportOverlay">
+    <div id="wordImportModal">
+      <div class="wim-header">
+        <h3>📥 Import Questions from Word</h3>
+        <button class="wim-close" id="wimCloseBtn">✕ Close</button>
+      </div>
+
+      <div class="wim-body">
+        <!-- Drop zone -->
+        <div id="wimDropZone" onclick="document.getElementById('wimFileInput').click()">
+          <div class="wim-drop-icon">📄</div>
+          <p>Drag &amp; drop your <strong>.docx</strong> file here<br>or click to browse</p>
+          <input type="file" id="wimFileInput" accept=".docx" />
+        </div>
+
+        <!-- File tag -->
+        <div id="wimFileTag">
+          <span>📎 <span id="wimFileName">—</span></span>
+          <button class="wim-btn-cancel" style="padding:4px 10px;font-size:.75rem" onclick="wimClearFile()">✕</button>
+        </div>
+
+        <!-- Format guide -->
+        <div class="wim-guide">
+          <strong>📋 Expected format in your Word file:</strong>
+          <code>1. Question text (T/F)
+الإجابة: صح   or:  خطأ / True / False
+
+2. Question text (MCQ)
+A. Option A
+B. Option B
+C. Option C
+D. Option D
+الإجابة: B</code>
+        </div>
+
+        <!-- Stats -->
+        <div id="wimStatsBar">
+          <span class="wim-pill wim-pill-tot" id="wimTot">0 questions</span>
+          <span class="wim-pill wim-pill-tf"  id="wimTF">0 T/F</span>
+          <span class="wim-pill wim-pill-mcq" id="wimMCQ">0 MCQ</span>
+          <span class="wim-pill wim-pill-warn" id="wimWarn" style="display:none">0 ⚠️ check</span>
+        </div>
+
+        <!-- Preview -->
+        <div id="wimPreview">
+          <p style="color:#7b83b0;font-size:.85rem;text-align:center">Upload a file and click Parse to preview questions</p>
+        </div>
+      </div>
+
+      <div class="wim-footer">
+        <button class="wim-btn-cancel" id="wimCancelBtn">Cancel</button>
+        <button class="wim-btn-parse" id="wimParseBtn" disabled>⚡ Parse File</button>
+        <button class="wim-btn-add"   id="wimAddBtn"   disabled>✅ Add to Exam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Word Import Script (inline, non-module) -->
+  <script>
+  (function() {
+    let wimFile = null;
+    let wimParsed = [];
+
+    // ── Open / Close ───────────────────────────────────────────────
+    function openWIM() {
+      document.getElementById('wordImportOverlay').classList.add('open');
+    }
+    function closeWIM() {
+      document.getElementById('wordImportOverlay').classList.remove('open');
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('wimCloseBtn').onclick  = closeWIM;
+      document.getElementById('wimCancelBtn').onclick = closeWIM;
+      document.getElementById('wordImportOverlay').addEventListener('click', e => {
+        if (e.target === document.getElementById('wordImportOverlay')) closeWIM();
+      });
+
+      // The Import button lives inside the admin module, so we attach via event delegation
+      document.body.addEventListener('click', e => {
+        if (e.target && e.target.id === 'openWordImportBtn') openWIM();
+      });
+
+      // Parse button
+      document.getElementById('wimParseBtn').onclick = wimParseFile;
+
+      // Add to Exam button — pushes parsed questions into admin.js queue
+      document.getElementById('wimAddBtn').onclick = wimAddToExam;
+    });
+
+    // ── File handling ───────────────────────────────────────────────
+    const dropZone  = document.getElementById('wimDropZone');
+    const fileInput = document.getElementById('wimFileInput');
+
+    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault(); dropZone.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0]; if (f) wimHandleFile(f);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) wimHandleFile(e.target.files[0]); });
+
+    function wimHandleFile(file) {
+      if (!file.name.endsWith('.docx')) { alert('Please upload a .docx file'); return; }
+      wimFile = file;
+      document.getElementById('wimFileName').textContent = file.name;
+      document.getElementById('wimFileTag').classList.add('visible');
+      document.getElementById('wimParseBtn').disabled = false;
+      wimParsed = [];
+      document.getElementById('wimAddBtn').disabled = true;
+    }
+
+    function wimClearFile() {
+      wimFile = null; fileInput.value = '';
+      document.getElementById('wimFileTag').classList.remove('visible');
+      document.getElementById('wimParseBtn').disabled = true;
+      document.getElementById('wimAddBtn').disabled   = true;
+      wimParsed = [];
+    }
+    window.wimClearFile = wimClearFile;
+
+    // ── Parse .docx ─────────────────────────────────────────────────
+    async function wimParseFile() {
+      if (!wimFile || typeof mammoth === 'undefined') return;
+      const btn = document.getElementById('wimParseBtn');
+      btn.disabled = true; btn.textContent = '⏳ Parsing…';
+      try {
+        const buf    = await wimFile.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: buf });
+        wimParsed = wimParse(result.value);
+        wimRender(wimParsed);
+      } catch (err) {
+        alert('Could not read file: ' + err.message);
+      }
+      btn.disabled = false; btn.textContent = '⚡ Parse File';
+    }
+
+    // ── Parser ──────────────────────────────────────────────────────
+    function wimParse(text) {
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const qs = [];
+      let i = 0, idBase = Date.now();
+
+      while (i < lines.length) {
+        const line   = lines[i];
+        const qMatch = line.match(/^(?:[١-٩][٠-٩]*|[1-9]\d*)[\.)\-\:]\s*(.+)/);
+        if (!qMatch) { i++; continue; }
+
+        const qText = qMatch[1].trim();
+        let j = i + 1;
+        const block = [];
+        while (j < lines.length) {
+          if (/^(?:[١-٩][٠-٩]*|[1-9]\d*)[\.)\-\:]\s/.test(lines[j])) break;
+          block.push(lines[j]); j++;
+        }
+
+        const optLines = block.filter(l => /^[A-Dأبجد][.)\]\s].+/i.test(l));
+
+        if (optLines.length >= 2) {
+          // MCQ
+          const options = optLines.map(l => l.replace(/^[A-Dأبجد][.)\]\s]/i, '').trim());
+          const ansLine = block.find(l => /الإجابة|الاجابة|answer|الصحيح/i.test(l));
+          let correctIndex = 0;
+          if (ansLine) {
+            const m = ansLine.match(/[A-Dأبجد]/i);
+            if (m) {
+              const map = { A:0,B:1,C:2,D:3,'أ':0,'ب':1,'ج':2,'د':3 };
+              correctIndex = map[m[0].toUpperCase()] ?? 0;
+            }
+          }
+          qs.push({ id: ++idBase, type:'mcq', text:qText, options, correctIndex, _warn:!ansLine });
+        } else {
+          // T/F
+          const ansLine = block.find(l => /الإجابة|الاجابة|answer|صح|خطأ|خطا|true|false/i.test(l));
+          let correct = true;
+          if (ansLine) {
+            correct = /صح|true|correct|نعم|yes/i.test(ansLine) && !/خطأ|خطا|false/i.test(ansLine);
+            if (/خطأ|خطا|false/i.test(ansLine)) correct = false;
+          }
+          qs.push({ id: ++idBase, type:'tf', text:qText, correct, _warn:!ansLine });
+        }
+        i = j;
+      }
+      return qs;
+    }
+
+    // ── Render preview ──────────────────────────────────────────────
+    function wimRender(qs) {
+      const tf   = qs.filter(q => q.type === 'tf').length;
+      const mcq  = qs.filter(q => q.type === 'mcq').length;
+      const warn = qs.filter(q => q._warn).length;
+
+      document.getElementById('wimTot').textContent  = qs.length + ' questions';
+      document.getElementById('wimTF').textContent   = tf  + ' T/F';
+      document.getElementById('wimMCQ').textContent  = mcq + ' MCQ';
+      const wEl = document.getElementById('wimWarn');
+      wEl.style.display = warn > 0 ? '' : 'none';
+      if (warn) wEl.textContent = warn + ' ⚠️ check answer';
+      document.getElementById('wimStatsBar').classList.add('visible');
+
+      const prev = document.getElementById('wimPreview');
+      if (qs.length === 0) {
+        prev.innerHTML = '<p style="color:#ff5572;text-align:center">⚠️ No questions found — check the file format</p>';
+        return;
+      }
+      prev.innerHTML = qs.map((q, idx) => {
+        const cls   = q._warn ? 'werr' : q.type === 'tf' ? 'wtf' : 'wmcq';
+        const label = q.type === 'tf' ? 'T/F' : 'MCQ';
+        const ans   = q.type === 'tf'
+          ? (q.correct ? '✅ True' : '❌ False')
+          : '✅ ' + (q.options[q.correctIndex] || '?');
+        return `<div class="wim-qrow ${cls}">
+          <strong>Q${idx+1}</strong><span class="wtag">${label}${q._warn?' ⚠️':''}</span>
+          ${esc(q.text)}
+          <span style="color:#7b83b0;margin-right:8px">${ans}</span>
+        </div>`;
+      }).join('');
+
+      document.getElementById('wimAddBtn').disabled = qs.length === 0;
+    }
+
+    // ── Add to Exam ─────────────────────────────────────────────────
+    function wimAddToExam() {
+      if (!wimParsed.length) return;
+      // Dispatch a custom event that admin.js can listen to
+      const event = new CustomEvent('wimImport', { detail: { questions: wimParsed } });
+      document.dispatchEvent(event);
+      closeWIM();
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  })();
+  </script>
 
   <script type="module" src="js/admin.js"></script>
 </body>

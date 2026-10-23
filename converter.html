@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>محول الأسئلة → JSON | Exam System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- mammoth.js — reads .docx in the browser (no server needed) -->
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f1a;
+      --surface:   #151829;
+      --surface2:  #1c2038;
+      --border:    #2a2f50;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --danger:    #ff5572;
+      --text:      #e8eaf6;
+      --muted:     #7b83b0;
+      --radius:    14px;
+      --shadow:    0 8px 32px rgba(0,0,0,.45);
+    }
+
+    html, body { height: 100%; font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header {
+      background: linear-gradient(135deg, #1a1d3a 0%, #0f1220 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    header .logo { font-size: 2rem; }
+    header h1   { font-size: 1.4rem; font-weight: 900; }
+    header p    { font-size: .85rem; color: var(--muted); margin-top: 2px; }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      display: flex; flex-direction: column; gap: 18px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .badge {
+      font-size: .7rem; font-weight: 700; padding: 3px 10px;
+      border-radius: 20px; letter-spacing: .5px; text-transform: uppercase;
+    }
+    .badge-blue  { background: rgba(108,99,255,.2); color: #a89fff; border: 1px solid rgba(108,99,255,.4); }
+    .badge-green { background: rgba(0,212,170,.15); color: #00d4aa; border: 1px solid rgba(0,212,170,.3); }
+
+    #dropZone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s ease;
+      background: var(--surface2);
+    }
+    #dropZone:hover, #dropZone.drag-over {
+      border-color: var(--accent);
+      background: rgba(108,99,255,.08);
+      transform: scale(1.01);
+    }
+    #dropZone .drop-icon { font-size: 3.5rem; margin-bottom: 12px; }
+    #dropZone p { color: var(--muted); font-size: .95rem; }
+    #dropZone strong { color: var(--accent); }
+    #fileInput { display: none; }
+
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label { font-size: .85rem; color: var(--muted); margin-bottom: 5px; display: block; }
+    input, select {
+      width: 100%; padding: 10px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text);
+      font-family: 'Cairo', sans-serif; font-size: .9rem;
+      transition: border-color .25s;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,.15);
+    }
+    .full { grid-column: 1 / -1; }
+
+    .guide {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      font-size: .82rem;
+    }
+    .guide h3 { margin-bottom: 10px; color: var(--accent2); font-size: .9rem; }
+    .guide pre {
+      font-family: 'Fira Code', monospace;
+      color: #c5d8ff; line-height: 1.7;
+      white-space: pre-wrap; font-size: .8rem;
+    }
+    .guide .hl-tf  { color: #ffd080; }
+    .guide .hl-mcq { color: #80ffcc; }
+    .guide .hl-ans { color: #ff9eb5; }
+
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    button {
+      padding: 11px 24px; border: none; border-radius: 9px;
+      font-family: 'Cairo', sans-serif; font-weight: 700; font-size: .9rem;
+      cursor: pointer; transition: all .25s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #8b83ff);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(108,99,255,.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(108,99,255,.5); }
+    .btn-secondary {
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success {
+      background: linear-gradient(135deg, var(--accent2), #00a882);
+      color: #021a13;
+      box-shadow: 0 4px 16px rgba(0,212,170,.3);
+    }
+    .btn-success:hover { transform: translateY(-2px); }
+    .btn-danger {
+      background: rgba(255,85,114,.12); color: var(--danger);
+      border: 1px solid rgba(255,85,114,.3);
+    }
+    .btn-danger:hover { background: rgba(255,85,114,.2); }
+    button:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+    #statsBar {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      opacity: 0; transform: translateY(-8px);
+      transition: all .4s ease;
+    }
+    #statsBar.visible { opacity: 1; transform: none; }
+    .stat-pill {
+      padding: 6px 14px; border-radius: 20px; font-size: .82rem; font-weight: 700;
+    }
+    .stat-total { background: rgba(108,99,255,.18); color: #a89fff; border: 1px solid rgba(108,99,255,.3); }
+    .stat-tf    { background: rgba(255,208,128,.15); color: #ffd080; border: 1px solid rgba(255,208,128,.3); }
+    .stat-mcq   { background: rgba(128,255,204,.12); color: #80ffcc; border: 1px solid rgba(128,255,204,.3); }
+    .stat-warn  { background: rgba(255,85,114,.12);  color: var(--danger); border: 1px solid rgba(255,85,114,.3); }
+
+    #jsonOutput, #firestoreOutput {
+      flex: 1; min-height: 380px;
+      background: #0a0c18;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      font-family: 'Fira Code', monospace;
+      font-size: .8rem; line-height: 1.7;
+      color: #c5d8ff;
+      resize: vertical;
+      width: 100%;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    #previewList {
+      max-height: 420px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .q-preview {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+      font-size: .82rem; line-height: 1.5;
+      border-right: 3px solid transparent;
+      position: relative;
+    }
+    .q-preview.is-tf  { border-right-color: #ffd080; }
+    .q-preview.is-mcq { border-right-color: #80ffcc; }
+    .q-preview.is-err { border-right-color: var(--danger); background: rgba(255,85,114,.05); }
+    .q-preview .qnum  { font-weight: 700; margin-left: 6px; }
+    .q-preview .qtype {
+      position: absolute; top: 10px; left: 14px;
+      font-size: .7rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .is-tf  .qtype { background: rgba(255,208,128,.18); color: #ffd080; }
+    .is-mcq .qtype { background: rgba(128,255,204,.15); color: #80ffcc; }
+    .is-err .qtype { background: rgba(255,85,114,.15);  color: var(--danger); }
+    .q-preview .qtext { color: var(--muted); margin-top: 4px; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface2); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: #1e2240; border: 1px solid var(--accent);
+      color: var(--text); padding: 12px 28px; border-radius: 30px;
+      font-weight: 700; font-size: .9rem;
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+      z-index: 999; pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    #fileTag {
+      display: none; align-items: center; gap: 8px;
+      background: rgba(108,99,255,.12); border: 1px solid rgba(108,99,255,.3);
+      border-radius: 8px; padding: 8px 14px; font-size: .85rem;
+    }
+    #fileTag.visible { display: flex; }
+    #fileTag span { flex: 1; }
+    #fileTag button { padding: 4px 10px; font-size: .75rem; }
+
+    .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .tab {
+      padding: 6px 16px; border-radius: 8px; font-size: .85rem;
+      font-family: 'Cairo', sans-serif; font-weight: 600;
+      border: 1px solid transparent; cursor: pointer;
+      background: transparent; color: var(--muted);
+      transition: all .2s;
+    }
+    .tab.active {
+      background: rgba(108,99,255,.18); color: #a89fff;
+      border-color: rgba(108,99,255,.35);
+    }
+    .tab-panel { display: none; flex: 1; flex-direction: column; gap: 14px; }
+    .tab-panel.active { display: flex; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <h1>محول الأسئلة → JSON</h1>
+    <p>ارفع ملف Word وهو يتحول لـ JSON جاهز للرفع على Firestore</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <h2>📂 الملف والإعدادات <span class="badge badge-blue">Step 1</span></h2>
+
+    <div id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-icon">📄</div>
+      <p>اسحب ملف <strong>.docx</strong> هنا<br>أو اضغط للاختيار</p>
+      <input type="file" id="fileInput" accept=".docx" />
+    </div>
+
+    <div id="fileTag">
+      <span>📎 <span id="fileName">—</span></span>
+      <button class="btn-danger" onclick="clearFile()">✕ إزالة</button>
+    </div>
+
+    <div class="meta-grid">
+      <div class="full">
+        <label>اسم الامتحان</label>
+        <input id="examTitle" type="text" placeholder="مثال: Medical Knowledge - Round 2" />
+      </div>
+      <div>
+        <label>النوع</label>
+        <select id="examSubject">
+          <option value="medical">Medical 🏥</option>
+          <option value="softskills">Soft Skills 💼</option>
+          <option value="general">General 📝</option>
+        </select>
+      </div>
+      <div>
+        <label>المدة (دقيقة)</label>
+        <input id="duration" type="number" value="45" min="5" max="180" />
+      </div>
+    </div>
+
+    <div class="guide">
+      <h3>📋 الصيغة المتوقعة في ملف Word:</h3>
+      <pre>
+<span class="hl-tf">── T/F ──────────────────────</span>
+1. نص السؤال الأول
+<span class="hl-ans">الإجابة: صح   أو: خطأ / True / False</span>
+
+<span class="hl-mcq">── MCQ ──────────────────────</span>
+2. نص السؤال الثاني
+A. الخيار الأول
+B. الخيار الثاني
+C. الخيار الثالث
+D. الخيار الرابع
+<span class="hl-ans">الإجابة: B</span>
+      </pre>
+      <p style="margin-top:10px; color:var(--muted); font-size:.78rem;">
+        💡 لو عندك صيغة مختلفة، ابعتها وأعدل الأداة عليها.
+      </p>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="convertBtn" onclick="convertFile()" disabled>⚡ تحويل الملف</button>
+      <button class="btn-secondary" onclick="loadSample()">🧪 جرب مثال</button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <h2>📦 النتيجة <span class="badge badge-green">Step 2</span></h2>
+
+    <div id="statsBar">
+      <span class="stat-pill stat-total" id="sTot">— سؤال</span>
+      <span class="stat-pill stat-tf"    id="sTF">— T/F</span>
+      <span class="stat-pill stat-mcq"   id="sMCQ">— MCQ</span>
+      <span class="stat-pill stat-warn"  id="sWarn" style="display:none">— ⚠️ تحقق</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="preview"   onclick="switchTab(this)">👁 معاينة</button>
+      <button class="tab" data-tab="json"             onclick="switchTab(this)">{ } JSON</button>
+      <button class="tab" data-tab="firestore"        onclick="switchTab(this)">🔥 Firestore</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-preview">
+      <div id="previewList">
+        <p style="color:var(--muted); font-size:.9rem; text-align:center; margin-top:40px;">
+          ارفع ملف وابدأ التحويل 🚀
+        </p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-json">
+      <textarea id="jsonOutput" readonly placeholder="JSON سيظهر هنا..."></textarea>
+    </div>
+
+    <div class="tab-panel" id="tab-firestore">
+      <textarea id="firestoreOutput" readonly placeholder="Firestore Document سيظهر هنا..."></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn-success"   id="copyBtn" onclick="copyJSON()" disabled>📋 نسخ</button>
+      <button class="btn-secondary" id="dlBtn"   onclick="downloadJSON()" disabled>⬇️ تحميل .json</button>
+      <button class="btn-secondary"              onclick="clearAll()">🗑 مسح</button>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast">✅ تم!</div>
+
+<script>
+let rawText = "";
+let parsedData = null;
+let fileHandle = null;
+
+// ── File handling ─────────────────────────────────────────────────
+const dropZone  = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+
+dropZone.addEventListener("dragover",  e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault(); dropZone.classList.remove("drag-over");
+  const f = e.dataTransfer.files[0]; if (f) handleFile(f);
+});
+fileInput.addEventListener("change", e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+async function handleFile(file) {
+  if (!file.name.endsWith(".docx")) { toast("❌ يرجى رفع ملف .docx فقط"); return; }
+  fileHandle = file;
+  document.getElementById("fileName").textContent = file.name;
+  document.getElementById("fileTag").classList.add("visible");
+  const noExt = file.name.replace(/\.docx$/i, "").replace(/[-_]/g, " ");
+  if (!document.getElementById("examTitle").value) document.getElementById("examTitle").value = noExt;
+  document.getElementById("convertBtn").disabled = false;
+  toast("✅ تم تحميل الملف — اضغط تحويل");
+}
+
+function clearFile() {
+  fileHandle = null; fileInput.value = ""; rawText = "";
+  document.getElementById("fileTag").classList.remove("visible");
+  document.getElementById("convertBtn").disabled = true;
+  document.getElementById("examTitle").value = "";
+}
+
+// ── Convert ───────────────────────────────────────────────────────
+async function convertFile() {
+  if (!fileHandle) return;
+  const btn = document.getElementById("convertBtn");
+  btn.disabled = true; btn.textContent = "⏳ جاري التحويل...";
+  try {
+    const arrayBuffer = await fileHandle.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    rawText = result.value;
+    processText(rawText);
+  } catch (err) {
+    toast("❌ تعذر قراءة الملف: " + err.message);
+  }
+  btn.disabled = false; btn.textContent = "⚡ تحويل الملف";
+}
+
+// ── Parse ─────────────────────────────────────────────────────────
+function processText(text) {
+  const lines     = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const questions = [];
+  let   i         = 0;
+  let   idBase    = Date.now();
+
+  while (i < lines.length) {
+    const line   = lines[i];
+    const qMatch = line.match(/^(?:[١-٩][٠-٩]*|[1-9]\d*)[\.\)\-\:]\s*(.+)/);
+    if (!qMatch) { i++; continue; }
+
+    const qText = qMatch[1].trim();
+    let j = i + 1;
+    const block = [];
+    while (j < lines.length) {
+      if (/^(?:[١-٩][٠-٩]*|[1-9]\d*)[\.\)\-\:]\s/.test(lines[j])) break;
+      block.push(lines[j]); j++;
+    }
+
+    // Detect MCQ by A. B. C. D. options
+    const optLines = block.filter(l => /^[A-Dأبجد][.\)]\s+.+/i.test(l));
+
+    if (optLines.length >= 2) {
+      // MCQ
+      const options = optLines.map(l => l.replace(/^[A-Dأبجد][.\)]\s+/i, "").trim());
+      const ansLine = block.find(l => /الإجابة|الاجابة|answer|الصحيح/i.test(l));
+      let correctIndex = 0;
+      if (ansLine) {
+        const m = ansLine.match(/[A-Dأبجد]/i);
+        if (m) {
+          const letter = m[0].toUpperCase();
+          const map = { A:0, B:1, C:2, D:3, 'أ':0, 'ب':1, 'ج':2, 'د':3 };
+          correctIndex = map[letter] ?? 0;
+        }
+      }
+      questions.push({
+        id: ++idBase,
+        examType: document.getElementById("examSubject").value,
+        type: "mcq", text: qText, options, correctIndex,
+        _warn: !ansLine
+      });
+    } else {
+      // T/F
+      const ansLine = block.find(l =>
+        /الإجابة|الاجابة|answer|صح|خطأ|خطا|true|false|correct/i.test(l)
+      );
+      let correct = true;
+      if (ansLine) {
+        correct = /صح|true|correct|نعم|yes/i.test(ansLine) && !/خطأ|خطا|false/i.test(ansLine);
+        if (/خطأ|خطا|false/i.test(ansLine)) correct = false;
+      }
+      questions.push({
+        id: ++idBase,
+        examType: document.getElementById("examSubject").value,
+        type: "tf", text: qText, correct,
+        _warn: !ansLine
+      });
+    }
+
+    i = j;
+  }
+
+  parsedData = questions;
+  renderOutput(questions);
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderOutput(questions) {
+  const tf   = questions.filter(q => q.type === "tf").length;
+  const mcq  = questions.filter(q => q.type === "mcq").length;
+  const warn = questions.filter(q => q._warn).length;
+
+  document.getElementById("sTot").textContent = questions.length + " سؤال";
+  document.getElementById("sTF").textContent  = tf + " T/F";
+  document.getElementById("sMCQ").textContent = mcq + " MCQ";
+  const wEl = document.getElementById("sWarn");
+  wEl.style.display = warn > 0 ? "" : "none";
+  if (warn > 0) wEl.textContent = warn + " ⚠️ تحقق";
+  document.getElementById("statsBar").classList.add("visible");
+
+  // Preview
+  const list = document.getElementById("previewList");
+  if (questions.length === 0) {
+    list.innerHTML = `<p style="color:var(--danger);text-align:center">⚠️ لم يُعثر على أسئلة — تأكد من الصيغة</p>`;
+  } else {
+    list.innerHTML = questions.map((q, idx) => {
+      const cls   = q._warn ? "is-err" : q.type === "tf" ? "is-tf" : "is-mcq";
+      const label = q.type === "tf" ? "T/F" : "MCQ";
+      const extra = q.type === "tf"
+        ? `<br><span style="color:${q.correct ? '#00d4aa' : '#ff5572'}">${q.correct ? "✅ صح" : "❌ خطأ"}</span>`
+        : `<br>${q.options.map((o,i) =>
+            `<span style="opacity:${i===q.correctIndex?1:.5}">${i===q.correctIndex ? "✅" : String.fromCharCode(65+i)+"."} ${escH(o)}</span>`
+          ).join(" &nbsp; ")}`;
+      return `<div class="q-preview ${cls}">
+        <span class="qtype">${label}${q._warn ? " ⚠️" : ""}</span>
+        <span class="qnum">Q${idx+1}.</span> ${escH(q.text)}
+        <div class="qtext">${extra}</div>
+      </div>`;
+    }).join("");
+  }
+
+  const clean = questions.map(({ _warn, ...r }) => r);
+  document.getElementById("jsonOutput").value = JSON.stringify(clean, null, 2);
+
+  const doc = {
+    title: document.getElementById("examTitle").value || "New Exam",
+    subject: document.getElementById("examSubject").value,
+    durationSeconds: parseInt(document.getElementById("duration").value) * 60,
+    createdAt: Date.now(),
+    questions: clean
+  };
+  document.getElementById("firestoreOutput").value = JSON.stringify(doc, null, 2);
+
+  document.getElementById("copyBtn").disabled = false;
+  document.getElementById("dlBtn").disabled   = false;
+  toast("✅ تم تحويل " + questions.length + " سؤال!");
+}
+
+// ── Utils ─────────────────────────────────────────────────────────
+function copyJSON() {
+  const tab = document.querySelector(".tab.active").dataset.tab;
+  const val = document.getElementById(tab === "firestore" ? "firestoreOutput" : "jsonOutput").value;
+  navigator.clipboard.writeText(val).then(() => toast("📋 تم النسخ!"));
+}
+
+function downloadJSON() {
+  const tab  = document.querySelector(".tab.active").dataset.tab;
+  const val  = document.getElementById(tab === "firestore" ? "firestoreOutput" : "jsonOutput").value;
+  const blob = new Blob([val], { type: "application/json" });
+  const a    = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(blob),
+    download: (document.getElementById("examTitle").value || "exam") + ".json"
+  });
+  a.click();
+}
+
+function clearAll() {
+  clearFile(); parsedData = null;
+  document.getElementById("previewList").innerHTML =
+    `<p style="color:var(--muted);font-size:.9rem;text-align:center;margin-top:40px;">ارفع ملف وابدأ التحويل 🚀</p>`;
+  document.getElementById("jsonOutput").value      = "";
+  document.getElementById("firestoreOutput").value = "";
+  document.getElementById("statsBar").classList.remove("visible");
+  document.getElementById("copyBtn").disabled = true;
+  document.getElementById("dlBtn").disabled   = true;
+}
+
+function switchTab(el) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tab-" + el.dataset.tab).classList.add("active");
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+// ── Sample data ───────────────────────────────────────────────────
+function loadSample() {
+  rawText = `1. Orogeng Mouthwash contains menthol and chlorhexidine.
+الإجابة: خطأ
+
+2. Hyaluronic Acid helps support oral tissue hydration.
+الإجابة: صح
+
+3. What is the concentration of Sodium Fluoride in Orogeng-H?
+A. 0.5%
+B. 0.05%
+C. 0.1%
+D. 1%
+الإجابة: B
+
+4. What is the main benefit of Jovey Joy for newborns?
+A. Moisturizing newborn skin
+B. Preventing umbilical cord infection
+C. Treating diaper rash
+D. Relieving teething pain
+الإجابة: B`;
+
+  document.getElementById("examTitle").value   = "Sample Medical Exam";
+  document.getElementById("examSubject").value = "medical";
+  processText(rawText);
+}
+</script>
+</body>
+</html>
